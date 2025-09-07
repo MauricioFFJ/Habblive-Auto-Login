@@ -2,7 +2,7 @@ name: Daily Habblive Login
 
 on:
   schedule:
-    - cron: "0 12 * * *"  # Executa todo dia às 12h UTC (09h no horário de Brasília)
+    - cron: "0 6 * * *"  # Executa todo dia às 06h UTC (03h no horário de Brasília)
   workflow_dispatch:
 
 jobs:
