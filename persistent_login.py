@@ -8,12 +8,14 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.keys import Keys
 from webdriver_manager.chrome import ChromeDriverManager
 from colorama import Fore, Style, init
 
 # ===== CONFIGURAÇÃO =====
 URL_BIGCLIENT = "https://habblive.in/bigclient/"
 CHECK_INTERVAL = 15  # segundos entre verificações
+EXECUTAR_ACOES = True  # True = faz ações no quarto, False = só loga/reloga
 # ========================
 
 init(autoreset=True)
@@ -36,9 +38,38 @@ def painel_status(total_contas):
         log(painel, Fore.BLUE)
         time.sleep(5)
 
+def executar_acoes_no_quarto(driver, index):
+    """Executa a sequência de ações dentro do cliente."""
+    wait = WebDriverWait(driver, 15)
+    try:
+        # Clicar no botão "Navegador de Quartos"
+        nav_btn = wait.until(EC.element_to_be_clickable(
+            (By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
+        ))
+        nav_btn.click()
+        log(f"[Conta {index}] Navegador de Quartos aberto.", Fore.GREEN)
+        time.sleep(2)
+
+        # Clicar no primeiro quarto da lista
+        first_room = wait.until(EC.element_to_be_clickable(
+            (By.CSS_SELECTOR, ".d-flex.overflow-hidden.cursor-pointer.flex-column.align-items-center.navigator-item")
+        ))
+        first_room.click()
+        log(f"[Conta {index}] Entrando no quarto...", Fore.GREEN)
+        time.sleep(5)
+
+        # Digitar comando no chat
+        chat_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".chat-input")))
+        chat_input.click()
+        chat_input.send_keys(":follow Solitudine")
+        chat_input.send_keys(Keys.ENTER)
+        log(f"[Conta {index}] Comando ':follow Solitudine' enviado.", Fore.MAGENTA)
+
+    except Exception as e:
+        log(f"[Conta {index}] Erro ao executar ações no quarto: {e}", Fore.RED)
+
 def iniciar_sessao(username, password, index):
-    # Delay inicial para evitar todas logarem ao mesmo tempo
-    time.sleep(index * 3)
+    time.sleep(index * 3)  # delay inicial para evitar logins simultâneos
 
     while True:
         with lock:
@@ -93,6 +124,10 @@ def iniciar_sessao(username, password, index):
             with lock:
                 status_contas[index] = "✅ Online"
 
+            # Executa ações no quarto se ativado
+            if EXECUTAR_ACOES:
+                executar_acoes_no_quarto(driver, index)
+
             # Loop de verificação
             while True:
                 current_url = driver.current_url
@@ -113,7 +148,7 @@ def iniciar_sessao(username, password, index):
 # Lê todas as contas, mesmo com buracos
 accounts = []
 i = 1
-while i <= 100:  # limite alto para garantir leitura de todas
+while i <= 100:
     user = os.getenv(f"HABBLIVE_USERNAME_{i}")
     pwd = os.getenv(f"HABBLIVE_PASSWORD_{i}")
     if user and pwd:
