@@ -19,7 +19,7 @@ EXECUTAR_ACOES = True  # True = faz ações no quarto, False = só loga/reloga
 
 # Configurações personalizadas
 DONO_QUARTO = "Solitudine"         # Nome do dono a ser digitado no filtro
-NOME_QUARTO = "Meu Quarto Teste"   # Nome exato (ou parte) do quarto a ser clicado
+NOME_QUARTO = "Bar Taberna (+18)"   # Nome exato (ou parte) do quarto a ser clicado
 MENSAGEM_CHAT = "2288"             # Mensagem a ser digitada no chat após entrar
 
 # Configurações de timeout (em segundos)
