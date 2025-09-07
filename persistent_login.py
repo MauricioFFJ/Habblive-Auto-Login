@@ -207,11 +207,13 @@ def iniciar_sessao(username, password, index):
 
                 try:
                     driver.find_element(By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
-                except:
+                               except:
                     log(f"[Conta {index}] ⚠️ Cliente reiniciou, aguardando recarregar...", Fore.YELLOW)
-                                            try:
+                    try:
                         WebDriverWait(driver, 90).until(
-                            EC.presence_of_element_located((By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms"))
+                            EC.presence_of_element_located(
+                                (By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
+                            )
                         )
                         log(f"[Conta {index}] Cliente recarregado.", Fore.GREEN)
                         if EXECUTAR_ACOES:
