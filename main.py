@@ -1,6 +1,5 @@
 import os
 import time
-import threading
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -12,48 +11,15 @@ from webdriver_manager.chrome import ChromeDriverManager
 from colorama import Fore, Style, init
 
 # ===== CONFIGURAÇÃO =====
-TEMPO_ONLINE = 30  # segundos que cada conta ficará no Big Client
+TEMPO_ONLINE = 20  # segundos que cada conta ficará no Big Client
 MAX_TENTATIVAS = 3  # número de tentativas de login por conta
 # ========================
 
 init(autoreset=True)
 
-tempo_restante = {}
-lock = threading.Lock()
-resultados = {}
-
 def log(msg, color=Fore.WHITE):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"{color}[{timestamp}] {msg}{Style.RESET_ALL}")
-
-def painel_contador(total_contas):
-    while True:
-        with lock:
-            status_parts = []
-            concluidas = 0
-            for i in range(1, total_contas+1):
-                status = tempo_restante.get(i)
-                if status == "done":
-                    status_parts.append(f"[Conta {i}] ✅ Concluído")
-                    concluidas += 1
-                elif status == "erro":
-                    status_parts.append(f"[Conta {i}] ❌ Erro")
-                    concluidas += 1
-                else:
-                    status_parts.append(f"[Conta {i}] {status}s restantes")
-            status_line = " | ".join(status_parts)
-
-        log(status_line, Fore.BLUE)
-
-        if concluidas == total_contas:
-            break
-        time.sleep(1)
-
-def marcar_erro(index, motivo):
-    log(f"[Conta {index}] Erro: {motivo}", Fore.RED)
-    with lock:
-        tempo_restante[index] = "erro"
-        resultados[index] = "erro"
 
 def tentar_login(driver, username, password, index):
     """Executa o processo de login. Retorna True se sucesso, False se falhar."""
@@ -85,7 +51,7 @@ def tentar_login(driver, username, password, index):
         user_input.clear()
         user_input.send_keys(username)
     except:
-        marcar_erro(index, "Campo de usuário não encontrado")
+        log(f"[Conta {index}] ❌ Campo de usuário não encontrado", Fore.RED)
         return False
 
     # Senha
@@ -96,7 +62,7 @@ def tentar_login(driver, username, password, index):
         pass_input.clear()
         pass_input.send_keys(password)
     except:
-        marcar_erro(index, "Campo de senha não encontrado")
+        log(f"[Conta {index}] ❌ Campo de senha não encontrado", Fore.RED)
         return False
 
     # Botão de login
@@ -106,7 +72,7 @@ def tentar_login(driver, username, password, index):
         )
         login_button.click()
     except:
-        marcar_erro(index, "Botão de login não encontrado ou não clicável")
+        log(f"[Conta {index}] ❌ Botão de login não encontrado ou não clicável", Fore.RED)
         return False
 
     time.sleep(5)  # aguarda login
@@ -131,30 +97,25 @@ def login_and_stay(username, password, index):
                 driver.get("https://habblive.in/bigclient/")
 
                 log(f"[Conta {index}] Online no Big Client. Mantendo por {TEMPO_ONLINE} segundos...", Fore.YELLOW)
-
                 for remaining in range(TEMPO_ONLINE, 0, -1):
-                    with lock:
-                        tempo_restante[index] = remaining
+                    log(f"[Conta {index}] {remaining}s restantes", Fore.BLUE)
                     time.sleep(1)
 
-                log(f"[Conta {index}] Sessão finalizada.", Fore.MAGENTA)
-                with lock:
-                    tempo_restante[index] = "done"
-                    resultados[index] = "sucesso"
+                log(f"[Conta {index}] ✅ Sessão finalizada.", Fore.MAGENTA)
                 driver.quit()
-                return  # encerra função se sucesso
+                return True
             else:
                 log(f"[Conta {index}] Falha na tentativa {tentativa}.", Fore.RED)
 
         except Exception as e:
-            marcar_erro(index, str(e))
+            log(f"[Conta {index}] ❌ Erro: {e}", Fore.RED)
         finally:
             driver.quit()
 
-    # Se chegou aqui, todas as tentativas falharam
-    marcar_erro(index, "Todas as tentativas de login falharam")
+    log(f"[Conta {index}] ❌ Todas as tentativas de login falharam", Fore.RED)
+    return False
 
-# Lê contas
+# Lê contas dos secrets
 accounts = []
 i = 1
 while True:
@@ -168,26 +129,14 @@ while True:
 if not accounts:
     raise ValueError("Nenhuma conta configurada nos secrets.")
 
-with lock:
-    for idx in range(1, len(accounts)+1):
-        tempo_restante[idx] = TEMPO_ONLINE
-        resultados[idx] = "pendente"
-
-painel_thread = threading.Thread(target=painel_contador, args=(len(accounts),))
-painel_thread.start()
-
-threads = []
+# Processa cada conta em sequência
+sucesso = 0
+erro = 0
 for idx, (username, password) in enumerate(accounts, start=1):
-    t = threading.Thread(target=login_and_stay, args=(username, password, idx))
-    t.start()
-    threads.append(t)
-
-for t in threads:
-    t.join()
-
-painel_thread.join()
+    if login_and_stay(username, password, idx):
+        sucesso += 1
+    else:
+        erro += 1
 
 # Resumo final
-sucesso = sum(1 for r in resultados.values() if r == "sucesso")
-erro = sum(1 for r in resultados.values() if r == "erro")
 log(f"Resumo final: {sucesso} contas concluíram com sucesso, {erro} contas tiveram erro.", Fore.CYAN)
