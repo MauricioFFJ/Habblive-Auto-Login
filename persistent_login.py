@@ -223,4 +223,7 @@ for idx, (username, password) in enumerate(accounts, start=1):
     threads.append(t)
 
 # Mantém todas as threads vivas
-for t in
+for t in threads:
+    t.join()
+
+painel_thread.join()
