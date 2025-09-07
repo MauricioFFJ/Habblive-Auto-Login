@@ -8,7 +8,6 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
 from webdriver_manager.chrome import ChromeDriverManager
 from colorama import Fore, Style, init
 
@@ -39,8 +38,8 @@ def painel_status(total_contas):
         time.sleep(5)
 
 def executar_acoes_no_quarto(driver, index):
-    """Executa a nova sequência de ações dentro do cliente."""
-    wait = WebDriverWait(driver, 15)
+    """Executa a sequência de ações dentro do cliente."""
+    wait = WebDriverWait(driver, 20)
     try:
         # 1. Aguardar 15 segundos
         log(f"[Conta {index}] Aguardando 15s antes de iniciar ações...", Fore.YELLOW)
@@ -164,7 +163,7 @@ def iniciar_sessao(username, password, index):
 
             time.sleep(5)
             driver.get(URL_BIGCLIENT)
-            log(f"[Conta {index}] ✅ Online no Big Client. Monitorando sessão...", Fore.GREEN)
+            log(f"[Conta {index}] ✅ Online no Big Client.", Fore.GREEN)
 
             with lock:
                 status_contas[index] = "✅ Online"
@@ -180,7 +179,7 @@ def iniciar_sessao(username, password, index):
                     log(f"[Conta {index}] ⚠️ Redirecionado para fora ({current_url}). Relogando...", Fore.YELLOW)
                     driver.quit()
                     time.sleep(2)
-                    break
+                    break  # volta ao início do while True e repete login + ações
                 time.sleep(CHECK_INTERVAL)
 
         except Exception as e:
