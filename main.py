@@ -11,6 +11,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from colorama import Fore, Style, init
 
+# ===== CONFIGURAÇÃO =====
+TEMPO_ONLINE = 30  # segundos que cada conta ficará no Big Client
+# ========================
+
 # Inicializa cores no terminal
 init(autoreset=True)
 
@@ -103,9 +107,9 @@ def login_and_stay(username, password, index):
         log(f"[Conta {index}] Login concluído. Acessando Big Client...", Fore.GREEN)
         driver.get("https://habblive.in/bigclient/")
 
-        log(f"[Conta {index}] Online no Big Client. Mantendo por 3 minutos...", Fore.YELLOW)
+        log(f"[Conta {index}] Online no Big Client. Mantendo por {TEMPO_ONLINE} segundos...", Fore.YELLOW)
 
-        for remaining in range(180, 0, -1):
+        for remaining in range(TEMPO_ONLINE, 0, -1):
             with lock:
                 tempo_restante[index] = remaining
             time.sleep(1)
@@ -139,7 +143,7 @@ if not accounts:
 
 with lock:
     for idx in range(1, len(accounts)+1):
-        tempo_restante[idx] = 180
+        tempo_restante[idx] = TEMPO_ONLINE
         resultados[idx] = "pendente"
 
 painel_thread = threading.Thread(target=painel_contador, args=(len(accounts),))
