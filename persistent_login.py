@@ -18,7 +18,7 @@ EXECUTAR_ACOES = True  # True = faz ações no quarto, False = só loga/reloga
 
 # Configurações personalizadas
 DONO_QUARTO = "Solitudine"         # Nome do dono a ser digitado no filtro
-NOME_QUARTO = "Meu Quarto Teste"   # Nome exato (ou parte) do quarto a ser clicado
+NOME_QUARTO = "Bar Taberna (+18)"   # Nome exato (ou parte) do quarto a ser clicado
 # ========================
 
 init(autoreset=True)
