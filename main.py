@@ -6,6 +6,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from colorama import Fore, Style, init
 
@@ -47,7 +49,7 @@ def login_and_stay(username, password, index):
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
-    # CORREÇÃO: usar Service para evitar conflito de argumentos
+    # Usa Service para evitar conflito de argumentos
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
 
@@ -55,9 +57,22 @@ def login_and_stay(username, password, index):
         log(f"[Conta {index}] Iniciando login para {username}...", Fore.CYAN)
         driver.get("https://habblive.in/")
 
+        # Preenche usuário e senha
         driver.find_element(By.NAME, "username").send_keys(username)
         driver.find_element(By.NAME, "password").send_keys(password)
-        driver.find_element(By.XPATH, "//button[@type='submit']").click()
+
+        # Aguarda até o botão de login estar clicável e clica
+        try:
+            login_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, ".btn.big.green.login-button"))
+            )
+            login_button.click()
+        except:
+            log(f"[Conta {index}] Botão de login não encontrado ou não clicável", Fore.RED)
+            with lock:
+                tempo_restante[index] = "done"
+            driver.quit()
+            return
 
         time.sleep(5)  # aguarda login
 
