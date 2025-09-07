@@ -18,12 +18,29 @@ CHECK_INTERVAL = 15  # segundos entre verificações
 
 init(autoreset=True)
 
+status_contas = {}
+lock = threading.Lock()
+
 def log(msg, color=Fore.WHITE):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"{color}[{timestamp}] {msg}{Style.RESET_ALL}")
 
+def painel_status(total_contas):
+    while True:
+        with lock:
+            status_parts = []
+            for i in range(1, total_contas + 1):
+                estado = status_contas.get(i, "⏳ Iniciando")
+                status_parts.append(f"[Conta {i}] {estado}")
+            painel = " | ".join(status_parts)
+        log(painel, Fore.BLUE)
+        time.sleep(5)
+
 def iniciar_sessao(username, password, index):
     while True:
+        with lock:
+            status_contas[index] = "🔄 Relogando"
+
         options = Options()
         options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
@@ -65,6 +82,9 @@ def iniciar_sessao(username, password, index):
             driver.get(URL_BIGCLIENT)
             log(f"[Conta {index}] ✅ Online no Big Client. Monitorando sessão...", Fore.GREEN)
 
+            with lock:
+                status_contas[index] = "✅ Online"
+
             # Loop de verificação
             while True:
                 current_url = driver.current_url
@@ -72,13 +92,15 @@ def iniciar_sessao(username, password, index):
                     log(f"[Conta {index}] ⚠️ Redirecionado para fora ({current_url}). Relogando...", Fore.YELLOW)
                     driver.quit()
                     time.sleep(2)
-                    break  # sai do loop e reinicia sessão
+                    break
                 time.sleep(CHECK_INTERVAL)
 
         except Exception as e:
             log(f"[Conta {index}] ❌ Erro: {e}", Fore.RED)
+            with lock:
+                status_contas[index] = "❌ Erro"
             driver.quit()
-            time.sleep(5)  # espera antes de tentar novamente
+            time.sleep(5)
 
 # Lê contas dos secrets
 accounts = []
@@ -94,7 +116,16 @@ while True:
 if not accounts:
     raise ValueError("Nenhuma conta configurada nos secrets.")
 
-# Inicia uma thread para cada conta
+# Inicializa status
+with lock:
+    for idx in range(1, len(accounts) + 1):
+        status_contas[idx] = "⏳ Iniciando"
+
+# Thread do painel
+painel_thread = threading.Thread(target=painel_status, args=(len(accounts),))
+painel_thread.start()
+
+# Threads das contas
 threads = []
 for idx, (username, password) in enumerate(accounts, start=1):
     t = threading.Thread(target=iniciar_sessao, args=(username, password, idx))
@@ -104,3 +135,5 @@ for idx, (username, password) in enumerate(accounts, start=1):
 # Mantém todas as threads vivas
 for t in threads:
     t.join()
+
+painel_thread.join()
