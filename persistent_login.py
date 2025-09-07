@@ -4,6 +4,7 @@ import threading
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
@@ -18,11 +19,11 @@ EXECUTAR_ACOES = True  # True = faz ações no quarto, False = só loga/reloga
 
 # Configurações personalizadas
 DONO_QUARTO = "Solitudine"         # Nome do dono a ser digitado no filtro
-NOME_QUARTO = "Meu Quarto Teste"   # Nome exato (ou parte) do quarto a ser clicado
+NOME_QUARTO = "Bar Taberna (+18)"   # Nome exato (ou parte) do quarto a ser clicado
+MENSAGEM_CHAT = "2288"             # Mensagem a ser digitada no chat após entrar
+
 # ========================
-
 init(autoreset=True)
-
 status_contas = {}
 lock = threading.Lock()
 
@@ -94,7 +95,6 @@ def wait_type_css(driver, css, text, desc, timeout=30, clear_first=False, fire_i
     return elem
 
 def selecionar_opcao_dono(driver):
-    # Usa mudança direta de value + evento change para garantir
     select_css = "select.form-select.form-select-sm"
     wait = WebDriverWait(driver, 30)
     select_elem = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, select_css)))
@@ -108,11 +108,9 @@ def selecionar_opcao_dono(driver):
     return select_elem
 
 def clicar_quarto_por_nome(driver, nome, timeout=40):
-    # XPath que ignora maiúsculas/minúsculas (com acentos) e tenta exato; se não achar, tenta contains.
     mapa_maius = "ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÂÊÎÔÛÃÕÇ"
     mapa_minus = "abcdefghijklmnopqrstuvwxyzáéíóúâêîôûãõç"
     nome_lower = nome.lower()
-
     xpath_exato = (
         f"//div[@class='flex-grow-1 d-inline text-black text-truncate' and "
         f"translate(normalize-space(text()), '{mapa_maius}', '{mapa_minus}')='{nome_lower}']"
@@ -121,12 +119,28 @@ def clicar_quarto_por_nome(driver, nome, timeout=40):
         f"//div[@class='flex-grow-1 d-inline text-black text-truncate' and "
         f"contains(translate(normalize-space(text()), '{mapa_maius}', '{mapa_minus}'), '{nome_lower}')]"
     )
-
     try:
         return wait_click_xpath(driver, xpath_exato, f"Quarto '{nome}' (exato)", timeout=timeout, use_js=True)
     except Exception as e1:
         log(f"Quarto exato não encontrado: {repr(e1)}. Tentando por 'contém'...", Fore.YELLOW)
         return wait_click_xpath(driver, xpath_contains, f"Quarto contendo '{nome}'", timeout=timeout, use_js=True)
+
+# Função auxiliar: realiza a ação extra no quarto
+def acao_mensagem_quarto(driver, mensagem):
+    try:
+        time.sleep(5)
+        input_chat = WebDriverWait(driver, 40).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, "input.chat-input[placeholder='Fale aqui...']"))
+        )
+        input_chat.click()
+        time.sleep(5)
+        input_chat.send_keys(mensagem)
+        log(f"Mensagem digitada: '{mensagem}'", Fore.MAGENTA)
+        time.sleep(2)
+        input_chat.send_keys(Keys.ENTER)
+        log("ENTER pressionado no chat.", Fore.GREEN)
+    except Exception as e:
+        log(f"Erro ao digitar mensagem no chat: {repr(e)}", Fore.RED)
 
 # ---------- Sequência de ações com retentativas ----------
 def executar_acoes_no_quarto(driver, index):
@@ -134,44 +148,33 @@ def executar_acoes_no_quarto(driver, index):
         try:
             log(f"[Conta {index}] Iniciando sequência (tentativa {tentativa}/3). Aguardando 15s...", Fore.YELLOW)
             time.sleep(15)
-
-            # Abrir navegador de quartos
             wait_click_css(driver, ".cursor-pointer.navigation-item.icon.icon-rooms",
                            "[Navegador de Quartos]", timeout=30, use_js=True)
             time.sleep(4)
-
-            # Abrir o select e selecionar 'Dono'
             wait_click_css(driver, "select.form-select.form-select-sm",
                            "[Menu de filtro]", timeout=30, use_js=True)
             time.sleep(4)
             selecionar_opcao_dono(driver)
             time.sleep(4)
-
-            # Campo de filtro e texto do dono
             wait_type_css(driver,
                           "input.form-control.form-control-sm[placeholder='filtrar quartos por']",
                           DONO_QUARTO, "[Filtro de texto - dono]", timeout=30,
                           clear_first=True, fire_input=True)
             time.sleep(4)
-
-            # Clicar no botão buscar
             wait_click_css(driver,
                            ".d-flex.align-items-center.justify-content-center.btn.btn-primary.btn-sm",
                            "[Botão Buscar]", timeout=30, use_js=True)
             time.sleep(15)
-
-            # Clicar no quarto pelo nome
             clicar_quarto_por_nome(driver, NOME_QUARTO, timeout=45)
             log(f"[Conta {index}] Entrando no quarto '{NOME_QUARTO}'.", Fore.GREEN)
-
+            # === AÇÃO EXTRA: Digitar mensagem no chat ===
+            acao_mensagem_quarto(driver, MENSAGEM_CHAT)
             # Sequência concluída
             return
-
         except Exception as e:
             log(f"[Conta {index}] Falha na sequência (tentativa {tentativa}/3): {repr(e)}", Fore.RED)
             if tentativa < 3:
                 time.sleep(6)
-                # Pequeno refresh no navegador de quartos para estabilizar a UI
                 try:
                     wait_click_css(driver, ".cursor-pointer.navigation-item.icon.icon-rooms",
                                    "[Reabrir Navegador de Quartos]", timeout=15, use_js=True)
@@ -181,27 +184,22 @@ def executar_acoes_no_quarto(driver, index):
                 log(f"[Conta {index}] Sequência falhou após 3 tentativas. Vai seguir monitorando.", Fore.RED)
 
 def iniciar_sessao(username, password, index):
-    time.sleep(index * 3)  # evita colisão de logins
-
+    time.sleep(index * 3)
     while True:
         with lock:
             status_contas[index] = "🔄 Relogando"
-
         options = Options()
         options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--incognito")
-        options.add_argument("--window-size=1366,768")  # importante para cliques em headless
-
+        options.add_argument("--window-size=1366,768")
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=options)
-
         try:
             log(f"[Conta {index}] Iniciando login para {username}...", Fore.CYAN)
             driver.get("https://habblive.in/")
             wait = WebDriverWait(driver, 25)
-
             # Fecha banner de cookies se aparecer
             try:
                 cookie_banner = wait.until(
@@ -219,24 +217,18 @@ def iniciar_sessao(username, password, index):
                     log(f"[Conta {index}] Banner de cookies removido via script.", Fore.MAGENTA)
             except Exception:
                 pass
-
             # Login
             wait.until(EC.presence_of_element_located((By.NAME, "username"))).send_keys(username)
             wait.until(EC.presence_of_element_located((By.NAME, "password"))).send_keys(password)
             btn_login = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".btn.big.green.login-button")))
             driver.execute_script("arguments[0].click();", btn_login)
-
             time.sleep(5)
             driver.get(URL_BIGCLIENT)
             log(f"[Conta {index}] ✅ Online no Big Client.", Fore.GREEN)
-
             with lock:
                 status_contas[index] = "✅ Online"
-
-            # Ações pós-login
             if EXECUTAR_ACOES:
                 executar_acoes_no_quarto(driver, index)
-
             # Monitoramento de sessão e reinícios
             while True:
                 current_url = driver.current_url
@@ -245,8 +237,6 @@ def iniciar_sessao(username, password, index):
                     driver.quit()
                     time.sleep(2)
                     break
-
-                # Detecta reinício do cliente (mesma URL, UI some e volta)
                 try:
                     driver.find_element(By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
                 except Exception:
@@ -260,9 +250,7 @@ def iniciar_sessao(username, password, index):
                             executar_acoes_no_quarto(driver, index)
                     except Exception as e:
                         log(f"[Conta {index}] ❌ Cliente não recarregou a tempo: {repr(e)}", Fore.RED)
-
                 time.sleep(CHECK_INTERVAL)
-
         except Exception as e:
             log(f"[Conta {index}] ❌ Erro: {repr(e)}", Fore.RED)
             with lock:
@@ -270,7 +258,7 @@ def iniciar_sessao(username, password, index):
             driver.quit()
             time.sleep(5)
 
-# Lê todas as contas, mesmo com buracos
+# Lê todas as contas (mesmo com buracos)
 accounts = []
 i = 1
 while i <= 100:
@@ -283,24 +271,18 @@ while i <= 100:
 if not accounts:
     raise ValueError("Nenhuma conta configurada nos secrets.")
 
-# Inicializa status
 with lock:
     for idx in range(1, len(accounts) + 1):
         status_contas[idx] = "⏳ Iniciando"
 
-# Thread do painel
 painel_thread = threading.Thread(target=painel_status, args=(len(accounts),))
 painel_thread.start()
 
-# Threads das contas
 threads = []
 for idx, (username, password) in enumerate(accounts, start=1):
     t = threading.Thread(target=iniciar_sessao, args=(username, password, idx))
     t.start()
     threads.append(t)
-
-# Mantém todas as threads vivas
 for t in threads:
     t.join()
-
 painel_thread.join()
