@@ -16,6 +16,7 @@ init(autoreset=True)
 
 tempo_restante = {}
 lock = threading.Lock()
+resultados = {}  # Guarda status final de cada conta
 
 def log(msg, color=Fore.WHITE):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -27,14 +28,18 @@ def painel_contador(total_contas):
             status_parts = []
             concluidas = 0
             for i in range(1, total_contas+1):
-                if tempo_restante.get(i) == "done":
+                status = tempo_restante.get(i)
+                if status == "done":
                     status_parts.append(f"[Conta {i}] ✅ Concluído")
                     concluidas += 1
+                elif status == "erro":
+                    status_parts.append(f"[Conta {i}] ❌ Erro")
+                    concluidas += 1
                 else:
-                    status_parts.append(f"[Conta {i}] {tempo_restante.get(i, 0)}s restantes")
-            status = " | ".join(status_parts)
+                    status_parts.append(f"[Conta {i}] {status}s restantes")
+            status_line = " | ".join(status_parts)
 
-        log(status, Fore.BLUE)
+        log(status_line, Fore.BLUE)
 
         if concluidas == total_contas:
             break
@@ -60,7 +65,6 @@ def login_and_stay(username, password, index):
             cookie_banner = wait.until(
                 EC.presence_of_element_located((By.ID, "cookie-law-container"))
             )
-            # Procura botão de aceitar dentro do banner
             try:
                 accept_btn = cookie_banner.find_element(By.TAG_NAME, "button")
                 accept_btn.click()
@@ -72,7 +76,7 @@ def login_and_stay(username, password, index):
                 """)
                 log(f"[Conta {index}] Banner de cookies removido via script.", Fore.MAGENTA)
         except:
-            pass  # Se não aparecer, segue
+            pass
 
         # Aguarda e preenche usuário
         user_input = wait.until(
@@ -109,11 +113,13 @@ def login_and_stay(username, password, index):
         log(f"[Conta {index}] Sessão finalizada.", Fore.MAGENTA)
         with lock:
             tempo_restante[index] = "done"
+            resultados[index] = "sucesso"
 
     except Exception as e:
         log(f"[Conta {index}] Erro: {e}", Fore.RED)
         with lock:
-            tempo_restante[index] = "done"
+            tempo_restante[index] = "erro"
+            resultados[index] = "erro"
     finally:
         driver.quit()
 
@@ -134,6 +140,7 @@ if not accounts:
 with lock:
     for idx in range(1, len(accounts)+1):
         tempo_restante[idx] = 180
+        resultados[idx] = "pendente"
 
 painel_thread = threading.Thread(target=painel_contador, args=(len(accounts),))
 painel_thread.start()
@@ -148,3 +155,8 @@ for t in threads:
     t.join()
 
 painel_thread.join()
+
+# Resumo final
+sucesso = sum(1 for r in resultados.values() if r == "sucesso")
+erro = sum(1 for r in resultados.values() if r == "erro")
+log(f"Resumo final: {sucesso} contas concluíram com sucesso, {erro} contas tiveram erro.", Fore.CYAN)
