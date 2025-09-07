@@ -37,6 +37,9 @@ def painel_status(total_contas):
         time.sleep(5)
 
 def iniciar_sessao(username, password, index):
+    # Delay inicial para evitar todas logarem ao mesmo tempo
+    time.sleep(index * 3)
+
     while True:
         with lock:
             status_contas[index] = "🔄 Relogando"
@@ -53,7 +56,7 @@ def iniciar_sessao(username, password, index):
         try:
             log(f"[Conta {index}] Iniciando login para {username}...", Fore.CYAN)
             driver.get("https://habblive.in/")
-            wait = WebDriverWait(driver, 15)
+            wait = WebDriverWait(driver, 20)
 
             # Fecha banner de cookies se aparecer
             try:
@@ -76,7 +79,12 @@ def iniciar_sessao(username, password, index):
             # Preenche login
             wait.until(EC.presence_of_element_located((By.NAME, "username"))).send_keys(username)
             wait.until(EC.presence_of_element_located((By.NAME, "password"))).send_keys(password)
-            wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".btn.big.green.login-button"))).click()
+
+            # Aguarda botão visível e clicável
+            login_button = wait.until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, ".btn.big.green.login-button"))
+            )
+            login_button.click()
 
             time.sleep(5)
             driver.get(URL_BIGCLIENT)
@@ -102,15 +110,14 @@ def iniciar_sessao(username, password, index):
             driver.quit()
             time.sleep(5)
 
-# Lê contas dos secrets
+# Lê todas as contas, mesmo com buracos
 accounts = []
 i = 1
-while True:
+while i <= 100:  # limite alto para garantir leitura de todas
     user = os.getenv(f"HABBLIVE_USERNAME_{i}")
     pwd = os.getenv(f"HABBLIVE_PASSWORD_{i}")
-    if not user or not pwd:
-        break
-    accounts.append((user, pwd))
+    if user and pwd:
+        accounts.append((user, pwd))
     i += 1
 
 if not accounts:
