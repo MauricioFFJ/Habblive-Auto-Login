@@ -21,19 +21,24 @@ def log(msg, color=Fore.WHITE):
     print(f"{color}[{timestamp}] {msg}{Style.RESET_ALL}")
 
 def painel_contador(total_contas):
-    """Mostra o contador sincronizado de todas as contas."""
+    """Mostra o contador sincronizado de todas as contas e para quando todas concluírem."""
     while True:
         with lock:
-            if not tempo_restante:
-                break
             status_parts = []
+            concluidas = 0
             for i in range(1, total_contas+1):
                 if tempo_restante.get(i) == "done":
                     status_parts.append(f"[Conta {i}] ✅ Concluído")
+                    concluidas += 1
                 else:
                     status_parts.append(f"[Conta {i}] {tempo_restante.get(i, 0)}s restantes")
             status = " | ".join(status_parts)
+
         log(status, Fore.BLUE)
+
+        if concluidas == total_contas:
+            break  # todas concluíram, encerra o painel
+
         time.sleep(1)
 
 def login_and_stay(username, password, index):
@@ -58,7 +63,7 @@ def login_and_stay(username, password, index):
 
         log(f"[Conta {index}] Online no Big Client. Mantendo por 3 minutos...", Fore.YELLOW)
 
-        # Inicia contador dessa conta
+        # Contagem regressiva
         for remaining in range(180, 0, -1):
             with lock:
                 tempo_restante[index] = remaining
@@ -94,11 +99,11 @@ with lock:
     for idx in range(1, len(accounts)+1):
         tempo_restante[idx] = 180
 
-# Thread para mostrar painel sincronizado
+# Thread do painel
 painel_thread = threading.Thread(target=painel_contador, args=(len(accounts),))
 painel_thread.start()
 
-# Cria e inicia uma thread para cada conta
+# Threads de login
 threads = []
 for idx, (username, password) in enumerate(accounts, start=1):
     t = threading.Thread(target=login_and_stay, args=(username, password, idx))
