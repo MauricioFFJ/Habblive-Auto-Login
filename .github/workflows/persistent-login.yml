@@ -21,6 +21,8 @@ jobs:
 
       - name: Executa login persistente com painel
         env:
+          HABBLIVE_USERNAME_1: ${{ secrets.HABBLIVE_USERNAME_1 }}
+          HABBLIVE_PASSWORD_1: ${{ secrets.HABBLIVE_PASSWORD_1 }}
           HABBLIVE_USERNAME_2: ${{ secrets.HABBLIVE_USERNAME_2 }}
           HABBLIVE_PASSWORD_2: ${{ secrets.HABBLIVE_PASSWORD_2 }}
           HABBLIVE_USERNAME_3: ${{ secrets.HABBLIVE_USERNAME_3 }}
