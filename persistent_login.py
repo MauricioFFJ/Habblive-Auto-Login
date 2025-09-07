@@ -16,9 +16,9 @@ URL_BIGCLIENT = "https://habblive.in/bigclient/"
 CHECK_INTERVAL = 15  # segundos entre verificações
 EXECUTAR_ACOES = True  # True = faz ações no quarto, False = só loga/reloga
 
-# Configurações personalizadas - Se EXECUTAR_ACOES estiver TRUE
+# Configurações personalizadas
 DONO_QUARTO = "Solitudine"  # Nome do dono a ser digitado no filtro
-NOME_QUARTO = "[†] UPADOR DOJÔ FAST UP - 100% AFK [†] ™"  # Nome exato do quarto a ser clicado
+NOME_QUARTO = "Meu Quarto Teste"  # Nome exato do quarto a ser clicado
 # ========================
 
 init(autoreset=True)
@@ -179,11 +179,29 @@ def iniciar_sessao(username, password, index):
             # Loop de verificação
             while True:
                 current_url = driver.current_url
+
+                # Se saiu do Big Client, reloga
                 if current_url != URL_BIGCLIENT:
                     log(f"[Conta {index}] ⚠️ Redirecionado para fora ({current_url}). Relogando...", Fore.YELLOW)
                     driver.quit()
                     time.sleep(2)
                     break
+
+                # Detecta reinício do cliente (mesma URL mas elementos sumiram)
+                try:
+                    driver.find_element(By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
+                except:
+                    log(f"[Conta {index}] ⚠️ Cliente reiniciou, aguardando recarregar...", Fore.YELLOW)
+                    try:
+                        WebDriverWait(driver, 60).until(
+                            EC.presence_of_element_located((By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms"))
+                        )
+                        log(f"[Conta {index}] Cliente recarregado.", Fore.GREEN)
+                        if EXECUTAR_ACOES:
+                            executar_acoes_no_quarto(driver, index)
+                    except:
+                        log(f"[Conta {index}] ❌ Cliente não recarregou a tempo.", Fore.RED)
+
                 time.sleep(CHECK_INTERVAL)
 
         except Exception as e:
