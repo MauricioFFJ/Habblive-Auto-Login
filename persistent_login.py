@@ -19,7 +19,7 @@ EXECUTAR_ACOES = True  # True = faz ações no quarto, False = só loga/reloga
 
 # Configurações personalizadas
 DONO_QUARTO = "Solitudine"         # Nome do dono a ser digitado no filtro
-NOME_QUARTO = "Bar Taberna (+18)"   # Nome exato (ou parte) do quarto a ser clicado
+NOME_QUARTO = "Meu Quarto Teste"   # Nome exato (ou parte) do quarto a ser clicado
 MENSAGEM_CHAT = "2288"             # Texto a ser enviado no chat após entrar no quarto
 # ========================
 
@@ -139,7 +139,8 @@ def executar_acoes_no_quarto(driver, index):
 
     except Exception as e:
         log(f"[Conta {index}] Erro ao executar ações no quarto: {e}", Fore.RED)
-        def iniciar_sessao(username, password, index):
+
+def iniciar_sessao(username, password, index):
     time.sleep(index * 3)
 
     while True:
@@ -204,11 +205,11 @@ def executar_acoes_no_quarto(driver, index):
                     time.sleep(2)
                     break
 
-                               try:
+                try:
                     driver.find_element(By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
                 except:
-                    log(f"[Conta {index}] ⚠️ Cliente reiniciou, aguardando recarregar...", Fore.YELLOW)
-                    try:
+                    log(f"[Conta {index}] ⚠️ Cliente reiniciou, aguardando recarregar...",
+                                            try:
                         WebDriverWait(driver, 90).until(
                             EC.presence_of_element_located((By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms"))
                         )
