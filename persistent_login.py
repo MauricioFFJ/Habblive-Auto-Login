@@ -45,71 +45,58 @@ def executar_acoes_no_quarto(driver, index):
     """Executa a sequência de ações dentro do cliente."""
     wait = WebDriverWait(driver, 20)
     try:
-        # 1. Aguardar 15 segundos
         log(f"[Conta {index}] Aguardando 15s antes de iniciar ações...", Fore.YELLOW)
         time.sleep(15)
 
-        # 2. Abrir o navegador de quartos
         nav_btn = wait.until(EC.element_to_be_clickable(
             (By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
         ))
         nav_btn.click()
         log(f"[Conta {index}] Navegador de Quartos aberto.", Fore.GREEN)
-
-        # 3. Aguardar 4 segundos
         time.sleep(4)
 
-        # 4. Clicar no <select>
         select_elem = wait.until(EC.element_to_be_clickable(
             (By.CSS_SELECTOR, "select.form-select.form-select-sm")
         ))
         select_elem.click()
         log(f"[Conta {index}] Menu de filtro aberto.", Fore.GREEN)
-
-        # 5. Aguardar 4 segundos
         time.sleep(4)
 
-        # 6. Clicar na opção "Dono"
         option_elem = wait.until(EC.element_to_be_clickable(
             (By.CSS_SELECTOR, "select.form-select.form-select-sm option[value='2']")
         ))
         option_elem.click()
         log(f"[Conta {index}] Filtro 'Dono' selecionado.", Fore.GREEN)
-
-        # 7. Aguardar 4 segundos
         time.sleep(4)
 
-        # 8. Clicar no campo de filtro de texto
         filtro_input = wait.until(EC.element_to_be_clickable(
             (By.CSS_SELECTOR, "input.form-control.form-control-sm[placeholder='filtrar quartos por']")
         ))
         filtro_input.click()
         log(f"[Conta {index}] Campo de filtro selecionado.", Fore.GREEN)
-
-        # 9. Aguardar 4 segundos
         time.sleep(4)
 
-        # 10. Escrever nome do dono
         filtro_input.send_keys(DONO_QUARTO)
         log(f"[Conta {index}] Texto '{DONO_QUARTO}' digitado.", Fore.MAGENTA)
-
-        # 11. Aguardar 4 segundos
         time.sleep(4)
 
-        # 12. Clicar no botão de busca
         btn_buscar = wait.until(EC.element_to_be_clickable(
             (By.CSS_SELECTOR, ".d-flex.align-items-center.justify-content-center.btn.btn-primary.btn-sm")
         ))
         btn_buscar.click()
         log(f"[Conta {index}] Botão de busca clicado.", Fore.GREEN)
-
-        # 13. Aguardar 15 segundos
         time.sleep(15)
 
-        # 14. Clicar no quarto pelo nome
-        quarto_elem = wait.until(EC.element_to_be_clickable(
-            (By.XPATH, f"//div[@class='flex-grow-1 d-inline text-black text-truncate' and normalize-space(text())='{NOME_QUARTO}']")
-        ))
+        # XPath robusto para ignorar maiúsculas/minúsculas
+        quarto_xpath = (
+            f"//div[@class='flex-grow-1 d-inline text-black text-truncate' "
+            f"and translate(normalize-space(text()), 'ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÂÊÎÔÛÃÕÇ', "
+            f"'abcdefghijklmnopqrstuvwxyzáéíóúâêîôûãõç')='{NOME_QUARTO.lower()}']"
+        )
+
+        quarto_elem = WebDriverWait(driver, 40).until(
+            EC.element_to_be_clickable((By.XPATH, quarto_xpath))
+        )
         quarto_elem.click()
         log(f"[Conta {index}] Entrando no quarto '{NOME_QUARTO}'...", Fore.GREEN)
 
@@ -117,7 +104,7 @@ def executar_acoes_no_quarto(driver, index):
         log(f"[Conta {index}] Erro ao executar ações no quarto: {e}", Fore.RED)
 
 def iniciar_sessao(username, password, index):
-    time.sleep(index * 3)  # delay inicial para evitar logins simultâneos
+    time.sleep(index * 3)
 
     while True:
         with lock:
@@ -137,7 +124,6 @@ def iniciar_sessao(username, password, index):
             driver.get("https://habblive.in/")
             wait = WebDriverWait(driver, 20)
 
-            # Fecha banner de cookies se aparecer
             try:
                 cookie_banner = wait.until(
                     EC.presence_of_element_located((By.ID, "cookie-law-container"))
@@ -155,11 +141,9 @@ def iniciar_sessao(username, password, index):
             except:
                 pass
 
-            # Preenche login
             wait.until(EC.presence_of_element_located((By.NAME, "username"))).send_keys(username)
             wait.until(EC.presence_of_element_located((By.NAME, "password"))).send_keys(password)
 
-            # Aguarda botão visível e clicável
             login_button = wait.until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, ".btn.big.green.login-button"))
             )
@@ -172,22 +156,17 @@ def iniciar_sessao(username, password, index):
             with lock:
                 status_contas[index] = "✅ Online"
 
-            # Executa ações no quarto se ativado
             if EXECUTAR_ACOES:
                 executar_acoes_no_quarto(driver, index)
 
-            # Loop de verificação
             while True:
                 current_url = driver.current_url
-
-                # Se saiu do Big Client, reloga
                 if current_url != URL_BIGCLIENT:
                     log(f"[Conta {index}] ⚠️ Redirecionado para fora ({current_url}). Relogando...", Fore.YELLOW)
                     driver.quit()
                     time.sleep(2)
                     break
 
-                # Detecta reinício do cliente (mesma URL mas elementos sumiram)
                 try:
                     driver.find_element(By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
                 except:
@@ -210,8 +189,7 @@ def iniciar_sessao(username, password, index):
                 status_contas[index] = "❌ Erro"
             driver.quit()
             time.sleep(5)
-
-# Lê todas as contas, mesmo com buracos
+            # Lê todas as contas, mesmo com buracos
 accounts = []
 i = 1
 while i <= 100:
