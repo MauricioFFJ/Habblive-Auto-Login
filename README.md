@@ -21,7 +21,7 @@ This project uses GitHub Actions scheduled workflow to keep your nickname alive.
 ### 🆙 Persistent Login
 
 This project uses GitHub Actions scheduled workflow to keep your active accounts indefinitely. In case of redirections or client outages, the accounts always re-enter automatically.
-To configure the desired actions, access the workflow [here](persistent_login.py).
+To configure the desired actions, access the code [here](persistent_login.py).
 
 Just make changes to the following snippet:
 
