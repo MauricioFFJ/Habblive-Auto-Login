@@ -1,0 +1,33 @@
+name: Daily Habblive Login (Painel com ✅)
+
+on:
+  schedule:
+    - cron: "0 12 * * *"  # Executa todo dia às 12h UTC
+  workflow_dispatch:
+
+jobs:
+  login:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Configura Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Instala dependências
+        run: |
+          pip install selenium webdriver-manager colorama
+
+      - name: Executa script de login
+        env:
+          HABBLIVE_USERNAME_1: ${{ secrets.HABBLIVE_USERNAME_1 }}
+          HABBLIVE_PASSWORD_1: ${{ secrets.HABBLIVE_PASSWORD_1 }}
+          HABBLIVE_USERNAME_2: ${{ secrets.HABBLIVE_USERNAME_2 }}
+          HABBLIVE_PASSWORD_2: ${{ secrets.HABBLIVE_PASSWORD_2 }}
+          HABBLIVE_USERNAME_3: ${{ secrets.HABBLIVE_USERNAME_3 }}
+          HABBLIVE_PASSWORD_3: ${{ secrets.HABBLIVE_PASSWORD_3 }}
+          # Adicione mais pares conforme necessário
+        run: python main.py
