@@ -21,7 +21,7 @@ jobs:
         run: |
           pip install selenium webdriver-manager colorama
 
-      - name: Executa script de login
+      - name: Executa script de login (sequencial)
         env:
           HABBLIVE_USERNAME_1: ${{ secrets.HABBLIVE_USERNAME_1 }}
           HABBLIVE_PASSWORD_1: ${{ secrets.HABBLIVE_PASSWORD_1 }}
