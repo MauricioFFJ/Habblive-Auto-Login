@@ -1,4 +1,4 @@
-name: Persistent Habblive Login (Manual, Painel, Relogin Automático)
+name: Persistent Habblive Login
 
 on:
   workflow_dispatch:
