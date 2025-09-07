@@ -237,38 +237,40 @@ def iniciar_sessao(username, password, index):
             if EXECUTAR_ACOES:
                 executar_acoes_no_quarto(driver, index)
 
-# Monitoramento de sessão e reinícios
-while True:
-    current_url = driver.current_url
+            # Monitoramento de sessão e reinícios
+            while True:
+                current_url = driver.current_url
 
-    if current_url != URL_BIGCLIENT:
-        # Verifica se o elemento principal do Big Client ainda está presente
-        try:
-            driver.find_element(By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
-            # Elemento encontrado → jogo ainda aberto, ignora redirecionamento indireto
-            pass
-        except:
-            # Elemento não encontrado → cliente realmente saiu
-            log(f"[Conta {index}] ⚠️ Redirecionado para fora ({current_url}). Relogando...", Fore.YELLOW)
-            driver.quit()
-            time.sleep(2)
-            break
+                if current_url != URL_BIGCLIENT:
+                    # Verifica se o elemento principal do Big Client ainda está presente
+                    try:
+                        driver.find_element(By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
+                        # Elemento encontrado → jogo ainda aberto, ignora redirecionamento indireto
+                        pass
+                    except:
+                        # Elemento não encontrado → cliente realmente saiu
+                        log(f"[Conta {index}] ⚠️ Redirecionado para fora ({current_url}). Relogando...", Fore.YELLOW)
+                        driver.quit()
+                        time.sleep(2)
+                        break
 
-    try:
-        driver.find_element(By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
-    except:
-        log(f"[Conta {index}] ⚠️ Cliente reiniciou, aguardando recarregar...", Fore.YELLOW)
-        try:
-            WebDriverWait(driver, 90).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms"))
-            )
-            log(f"[Conta {index}] Cliente recarregado.", Fore.GREEN)
-            if EXECUTAR_ACOES:
-                executar_acoes_no_quarto(driver, index)
-        except Exception as e:
-            log(f"[Conta {index}] ❌ Cliente não recarregou a tempo: {repr(e)}", Fore.RED)
+                try:
+                    driver.find_element(By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
+                except:
+                    log(f"[Conta {index}] ⚠️ Cliente reiniciou, aguardando recarregar...", Fore.YELLOW)
+                    try:
+                        WebDriverWait(driver, 90).until(
+                            EC.presence_of_element_located(
+                                (By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
+                            )
+                        )
+                        log(f"[Conta {index}] Cliente recarregado.", Fore.GREEN)
+                        if EXECUTAR_ACOES:
+                            executar_acoes_no_quarto(driver, index)
+                    except Exception as e:
+                        log(f"[Conta {index}] ❌ Cliente não recarregou a tempo: {repr(e)}", Fore.RED)
 
-    time.sleep(CHECK_INTERVAL)
+                time.sleep(CHECK_INTERVAL)
 
                 # Detecta reinício do cliente (mesma URL, UI some e volta)
                 try:
