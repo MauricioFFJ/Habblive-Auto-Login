@@ -20,6 +20,8 @@ jobs:
 
       - name: Executa login persistente com painel e ações
         env:
+          HABBLIVE_USERNAME_1: ${{ secrets.HABBLIVE_USERNAME_2 }}
+          HABBLIVE_PASSWORD_1: ${{ secrets.HABBLIVE_PASSWORD_2 }}
           HABBLIVE_USERNAME_2: ${{ secrets.HABBLIVE_USERNAME_2 }}
           HABBLIVE_PASSWORD_2: ${{ secrets.HABBLIVE_PASSWORD_2 }}
           HABBLIVE_USERNAME_3: ${{ secrets.HABBLIVE_USERNAME_3 }}
@@ -38,5 +40,5 @@ jobs:
           HABBLIVE_PASSWORD_9: ${{ secrets.HABBLIVE_PASSWORD_9 }}
           HABBLIVE_USERNAME_10: ${{ secrets.HABBLIVE_USERNAME_10 }}
           HABBLIVE_PASSWORD_10: ${{ secrets.HABBLIVE_PASSWORD_10 }}
-          # Devido as limitações de IP, recomenda-se apenas logar no máximo em 10 contas.
+          # Devido as limitações de IP, recomenda-se apenas logar no máximo em 10 contas por ação. Você pode executar as 5 ações, totalizando 50 contas.
         run: python persistent_login.py
