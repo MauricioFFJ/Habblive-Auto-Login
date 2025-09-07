@@ -13,14 +13,14 @@ from colorama import Fore, Style, init
 
 # ===== CONFIGURAÇÃO =====
 TEMPO_ONLINE = 30  # segundos que cada conta ficará no Big Client
+MAX_TENTATIVAS = 3  # número de tentativas de login por conta
 # ========================
 
-# Inicializa cores no terminal
 init(autoreset=True)
 
 tempo_restante = {}
 lock = threading.Lock()
-resultados = {}  # Guarda status final de cada conta
+resultados = {}
 
 def log(msg, color=Fore.WHITE):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -49,85 +49,112 @@ def painel_contador(total_contas):
             break
         time.sleep(1)
 
-def login_and_stay(username, password, index):
-    options = Options()
-    options.add_argument("--headless=new")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
+def marcar_erro(index, motivo):
+    log(f"[Conta {index}] Erro: {motivo}", Fore.RED)
+    with lock:
+        tempo_restante[index] = "erro"
+        resultados[index] = "erro"
 
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=options)
+def tentar_login(driver, username, password, index):
+    """Executa o processo de login. Retorna True se sucesso, False se falhar."""
+    wait = WebDriverWait(driver, 15)
 
+    # Fecha banner de cookies se aparecer
     try:
-        log(f"[Conta {index}] Iniciando login para {username}...", Fore.CYAN)
-        driver.get("https://habblive.in/")
-
-        wait = WebDriverWait(driver, 15)
-
-        # Fecha banner de cookies se aparecer
+        cookie_banner = wait.until(
+            EC.presence_of_element_located((By.ID, "cookie-law-container"))
+        )
         try:
-            cookie_banner = wait.until(
-                EC.presence_of_element_located((By.ID, "cookie-law-container"))
-            )
-            try:
-                accept_btn = cookie_banner.find_element(By.TAG_NAME, "button")
-                accept_btn.click()
-                log(f"[Conta {index}] Banner de cookies fechado.", Fore.MAGENTA)
-            except:
-                driver.execute_script("""
-                    var el = document.getElementById('cookie-law-container');
-                    if (el) el.remove();
-                """)
-                log(f"[Conta {index}] Banner de cookies removido via script.", Fore.MAGENTA)
+            accept_btn = cookie_banner.find_element(By.TAG_NAME, "button")
+            accept_btn.click()
+            log(f"[Conta {index}] Banner de cookies fechado.", Fore.MAGENTA)
         except:
-            pass
+            driver.execute_script("""
+                var el = document.getElementById('cookie-law-container');
+                if (el) el.remove();
+            """)
+            log(f"[Conta {index}] Banner de cookies removido via script.", Fore.MAGENTA)
+    except:
+        pass
 
-        # Aguarda e preenche usuário
+    # Usuário
+    try:
         user_input = wait.until(
             EC.presence_of_element_located((By.NAME, "username"))
         )
         user_input.clear()
         user_input.send_keys(username)
+    except:
+        marcar_erro(index, "Campo de usuário não encontrado")
+        return False
 
-        # Aguarda e preenche senha
+    # Senha
+    try:
         pass_input = wait.until(
             EC.presence_of_element_located((By.NAME, "password"))
         )
         pass_input.clear()
         pass_input.send_keys(password)
+    except:
+        marcar_erro(index, "Campo de senha não encontrado")
+        return False
 
-        # Aguarda e clica no botão de login
+    # Botão de login
+    try:
         login_button = wait.until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, ".btn.big.green.login-button"))
         )
         login_button.click()
+    except:
+        marcar_erro(index, "Botão de login não encontrado ou não clicável")
+        return False
 
-        time.sleep(5)  # aguarda login
+    time.sleep(5)  # aguarda login
+    return True
 
-        log(f"[Conta {index}] Login concluído. Acessando Big Client...", Fore.GREEN)
-        driver.get("https://habblive.in/bigclient/")
+def login_and_stay(username, password, index):
+    for tentativa in range(1, MAX_TENTATIVAS + 1):
+        options = Options()
+        options.add_argument("--headless=new")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
 
-        log(f"[Conta {index}] Online no Big Client. Mantendo por {TEMPO_ONLINE} segundos...", Fore.YELLOW)
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
 
-        for remaining in range(TEMPO_ONLINE, 0, -1):
-            with lock:
-                tempo_restante[index] = remaining
-            time.sleep(1)
+        try:
+            log(f"[Conta {index}] Tentativa {tentativa} de login para {username}...", Fore.CYAN)
+            driver.get("https://habblive.in/")
 
-        log(f"[Conta {index}] Sessão finalizada.", Fore.MAGENTA)
-        with lock:
-            tempo_restante[index] = "done"
-            resultados[index] = "sucesso"
+            if tentar_login(driver, username, password, index):
+                log(f"[Conta {index}] Login concluído. Acessando Big Client...", Fore.GREEN)
+                driver.get("https://habblive.in/bigclient/")
 
-    except Exception as e:
-        log(f"[Conta {index}] Erro: {e}", Fore.RED)
-        with lock:
-            tempo_restante[index] = "erro"
-            resultados[index] = "erro"
-    finally:
-        driver.quit()
+                log(f"[Conta {index}] Online no Big Client. Mantendo por {TEMPO_ONLINE} segundos...", Fore.YELLOW)
 
-# Lê contas dos secrets
+                for remaining in range(TEMPO_ONLINE, 0, -1):
+                    with lock:
+                        tempo_restante[index] = remaining
+                    time.sleep(1)
+
+                log(f"[Conta {index}] Sessão finalizada.", Fore.MAGENTA)
+                with lock:
+                    tempo_restante[index] = "done"
+                    resultados[index] = "sucesso"
+                driver.quit()
+                return  # encerra função se sucesso
+            else:
+                log(f"[Conta {index}] Falha na tentativa {tentativa}.", Fore.RED)
+
+        except Exception as e:
+            marcar_erro(index, str(e))
+        finally:
+            driver.quit()
+
+    # Se chegou aqui, todas as tentativas falharam
+    marcar_erro(index, "Todas as tentativas de login falharam")
+
+# Lê contas
 accounts = []
 i = 1
 while True:
