@@ -42,6 +42,9 @@ def executar_acoes_no_quarto(driver, index):
     """Executa a sequência de ações dentro do cliente."""
     wait = WebDriverWait(driver, 15)
     try:
+        log(f"[Conta {index}] Aguardando 15s antes de iniciar ações...", Fore.YELLOW)
+        time.sleep(15)
+
         # Clicar no botão "Navegador de Quartos"
         nav_btn = wait.until(EC.element_to_be_clickable(
             (By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
@@ -56,6 +59,8 @@ def executar_acoes_no_quarto(driver, index):
         ))
         first_room.click()
         log(f"[Conta {index}] Entrando no quarto...", Fore.GREEN)
+
+        log(f"[Conta {index}] Aguardando 5s antes de enviar mensagem...", Fore.YELLOW)
         time.sleep(5)
 
         # Digitar comando no chat
