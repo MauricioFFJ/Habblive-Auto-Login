@@ -14,17 +14,14 @@ from colorama import Fore, Style, init
 # Inicializa cores no terminal
 init(autoreset=True)
 
-# Variável global para armazenar tempo restante de cada conta
 tempo_restante = {}
 lock = threading.Lock()
 
 def log(msg, color=Fore.WHITE):
-    """Imprime mensagem com timestamp e cor."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"{color}[{timestamp}] {msg}{Style.RESET_ALL}")
 
 def painel_contador(total_contas):
-    """Mostra o contador sincronizado e para quando todas concluírem."""
     while True:
         with lock:
             status_parts = []
@@ -49,7 +46,6 @@ def login_and_stay(username, password, index):
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
-    # Usa Service para evitar conflito de argumentos
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
 
@@ -57,31 +53,36 @@ def login_and_stay(username, password, index):
         log(f"[Conta {index}] Iniciando login para {username}...", Fore.CYAN)
         driver.get("https://habblive.in/")
 
-        # Preenche usuário e senha
-        driver.find_element(By.NAME, "username").send_keys(username)
-        driver.find_element(By.NAME, "password").send_keys(password)
+        wait = WebDriverWait(driver, 15)
 
-        # Aguarda até o botão de login estar clicável e clica
-        try:
-            login_button = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, ".btn.big.green.login-button"))
-            )
-            login_button.click()
-        except:
-            log(f"[Conta {index}] Botão de login não encontrado ou não clicável", Fore.RED)
-            with lock:
-                tempo_restante[index] = "done"
-            driver.quit()
-            return
+        # Aguarda e preenche usuário
+        user_input = wait.until(
+            EC.presence_of_element_located((By.NAME, "username"))
+        )
+        user_input.clear()
+        user_input.send_keys(username)
 
-        time.sleep(5)  # aguarda login
+        # Aguarda e preenche senha
+        pass_input = wait.until(
+            EC.presence_of_element_located((By.NAME, "password"))
+        )
+        pass_input.clear()
+        pass_input.send_keys(password)
+
+        # Aguarda e clica no botão de login
+        login_button = wait.until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, ".btn.big.green.login-button"))
+        )
+        login_button.click()
+
+        # Aguarda um pouco para garantir login
+        time.sleep(5)
 
         log(f"[Conta {index}] Login concluído. Acessando Big Client...", Fore.GREEN)
         driver.get("https://habblive.in/bigclient/")
 
         log(f"[Conta {index}] Online no Big Client. Mantendo por 3 minutos...", Fore.YELLOW)
 
-        # Contagem regressiva
         for remaining in range(180, 0, -1):
             with lock:
                 tempo_restante[index] = remaining
@@ -98,7 +99,7 @@ def login_and_stay(username, password, index):
     finally:
         driver.quit()
 
-# Lê todas as contas dos secrets
+# Lê contas dos secrets
 accounts = []
 i = 1
 while True:
@@ -112,25 +113,20 @@ while True:
 if not accounts:
     raise ValueError("Nenhuma conta configurada nos secrets.")
 
-# Inicializa tempo_restante
 with lock:
     for idx in range(1, len(accounts)+1):
         tempo_restante[idx] = 180
 
-# Thread do painel
 painel_thread = threading.Thread(target=painel_contador, args=(len(accounts),))
 painel_thread.start()
 
-# Threads de login
 threads = []
 for idx, (username, password) in enumerate(accounts, start=1):
     t = threading.Thread(target=login_and_stay, args=(username, password, idx))
     t.start()
     threads.append(t)
 
-# Aguarda todas as threads terminarem
 for t in threads:
     t.join()
 
-# Aguarda painel encerrar
 painel_thread.join()
