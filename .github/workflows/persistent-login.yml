@@ -1,4 +1,4 @@
-name: Persistent Habblive Login (Contas 1-10)
+name: Persistent Login (Contas 1-10)
 on:
   workflow_dispatch:
 
