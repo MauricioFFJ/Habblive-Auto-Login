@@ -1,4 +1,4 @@
-name: Persistent Habblive Login
+name: Persistent Habblive Login (Contas 1-10)
 on:
   workflow_dispatch:
 
@@ -38,7 +38,5 @@ jobs:
           HABBLIVE_PASSWORD_9: ${{ secrets.HABBLIVE_PASSWORD_9 }}
           HABBLIVE_USERNAME_10: ${{ secrets.HABBLIVE_USERNAME_10 }}
           HABBLIVE_PASSWORD_10: ${{ secrets.HABBLIVE_PASSWORD_10 }}
-          HABBLIVE_USERNAME_11: ${{ secrets.HABBLIVE_USERNAME_11 }}
-          HABBLIVE_PASSWORD_11: ${{ secrets.HABBLIVE_PASSWORD_11 }}
-          # Devido as limitações de IP, recomenda-se apenas logar no máximo em 11 contas.
+          # Devido as limitações de IP, recomenda-se apenas logar no máximo em 10 contas.
         run: python persistent_login.py
