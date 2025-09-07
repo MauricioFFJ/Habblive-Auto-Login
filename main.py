@@ -55,6 +55,25 @@ def login_and_stay(username, password, index):
 
         wait = WebDriverWait(driver, 15)
 
+        # Fecha banner de cookies se aparecer
+        try:
+            cookie_banner = wait.until(
+                EC.presence_of_element_located((By.ID, "cookie-law-container"))
+            )
+            # Procura botão de aceitar dentro do banner
+            try:
+                accept_btn = cookie_banner.find_element(By.TAG_NAME, "button")
+                accept_btn.click()
+                log(f"[Conta {index}] Banner de cookies fechado.", Fore.MAGENTA)
+            except:
+                driver.execute_script("""
+                    var el = document.getElementById('cookie-law-container');
+                    if (el) el.remove();
+                """)
+                log(f"[Conta {index}] Banner de cookies removido via script.", Fore.MAGENTA)
+        except:
+            pass  # Se não aparecer, segue
+
         # Aguarda e preenche usuário
         user_input = wait.until(
             EC.presence_of_element_located((By.NAME, "username"))
@@ -75,8 +94,7 @@ def login_and_stay(username, password, index):
         )
         login_button.click()
 
-        # Aguarda um pouco para garantir login
-        time.sleep(5)
+        time.sleep(5)  # aguarda login
 
         log(f"[Conta {index}] Login concluído. Acessando Big Client...", Fore.GREEN)
         driver.get("https://habblive.in/bigclient/")
