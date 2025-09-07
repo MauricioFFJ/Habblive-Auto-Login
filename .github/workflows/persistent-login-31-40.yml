@@ -1,0 +1,34 @@
+name: Persistent Login (Contas 31-40)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  login-31-40:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - run: pip install selenium webdriver-manager colorama
+      - name: Executa login persistente
+        env:
+          HABBLIVE_USERNAME_31: ${{ secrets.HABBLIVE_USERNAME_31 }}
+          HABBLIVE_PASSWORD_31: ${{ secrets.HABBLIVE_PASSWORD_31 }}
+          HABBLIVE_USERNAME_32: ${{ secrets.HABBLIVE_USERNAME_32 }}
+          HABBLIVE_PASSWORD_32: ${{ secrets.HABBLIVE_PASSWORD_32 }}
+          HABBLIVE_USERNAME_33: ${{ secrets.HABBLIVE_USERNAME_33 }}
+          HABBLIVE_PASSWORD_33: ${{ secrets.HABBLIVE_PASSWORD_33 }}
+          HABBLIVE_USERNAME_34: ${{ secrets.HABBLIVE_USERNAME_34 }}
+          HABBLIVE_PASSWORD_34: ${{ secrets.HABBLIVE_PASSWORD_34 }}
+          HABBLIVE_USERNAME_35: ${{ secrets.HABBLIVE_USERNAME_35 }}
+          HABBLIVE_PASSWORD_35: ${{ secrets.HABBLIVE_PASSWORD_35 }}
+          HABBLIVE_USERNAME_36: ${{ secrets.HABBLIVE_USERNAME_36 }}
+          HABBLIVE_PASSWORD_36: ${{ secrets.HABBLIVE_PASSWORD_36 }}
+          HABBLIVE_USERNAME_37: ${{ secrets.HABBLIVE_USERNAME_37 }}
+          HABBLIVE_PASSWORD_37: ${{ secrets.HABBLIVE_PASSWORD_37 }}
+          HABBLIVE_USERNAME_38: ${{ secrets.HABBLIVE_USERNAME_38 }}
+          HABBLIVE_PASSWORD_38: ${{ secrets.HABBLIVE_PASSWORD_38 }}
+          HABBLIVE_USERNAME_39: ${{ secrets.HABBLIVE_USERNAME_39 }}
+          HABBLIVE_PASSWORD
