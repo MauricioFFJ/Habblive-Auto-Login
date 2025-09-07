@@ -1,4 +1,4 @@
-name: Persistent Habblive Login (Manual, Relogin Automático)
+name: Persistent Habblive Login (Manual, Painel, Relogin Automático)
 
 on:
   workflow_dispatch:
@@ -19,7 +19,7 @@ jobs:
         run: |
           pip install selenium webdriver-manager colorama
 
-      - name: Executa login persistente
+      - name: Executa login persistente com painel
         env:
           HABBLIVE_USERNAME_1: ${{ secrets.HABBLIVE_USERNAME_1 }}
           HABBLIVE_PASSWORD_1: ${{ secrets.HABBLIVE_PASSWORD_1 }}
