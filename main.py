@@ -5,6 +5,7 @@ from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from colorama import Fore, Style, init
 
@@ -21,7 +22,7 @@ def log(msg, color=Fore.WHITE):
     print(f"{color}[{timestamp}] {msg}{Style.RESET_ALL}")
 
 def painel_contador(total_contas):
-    """Mostra o contador sincronizado de todas as contas e para quando todas concluírem."""
+    """Mostra o contador sincronizado e para quando todas concluírem."""
     while True:
         with lock:
             status_parts = []
@@ -37,8 +38,7 @@ def painel_contador(total_contas):
         log(status, Fore.BLUE)
 
         if concluidas == total_contas:
-            break  # todas concluíram, encerra o painel
-
+            break
         time.sleep(1)
 
 def login_and_stay(username, password, index):
@@ -47,7 +47,10 @@ def login_and_stay(username, password, index):
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
-    driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+    # CORREÇÃO: usar Service para evitar conflito de argumentos
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
+
     try:
         log(f"[Conta {index}] Iniciando login para {username}...", Fore.CYAN)
         driver.get("https://habblive.in/")
@@ -94,7 +97,7 @@ while True:
 if not accounts:
     raise ValueError("Nenhuma conta configurada nos secrets.")
 
-# Inicializa tempo_restante para todas as contas
+# Inicializa tempo_restante
 with lock:
     for idx in range(1, len(accounts)+1):
         tempo_restante[idx] = 180
