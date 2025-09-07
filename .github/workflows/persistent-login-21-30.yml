@@ -1,10 +1,10 @@
-name: Persistent Login (Contas 31-40)
+name: Persistent Login (Contas 21-30)
 
 on:
   workflow_dispatch:
 
 jobs:
-  login-31-40:
+  login-21-30:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -14,21 +14,24 @@ jobs:
       - run: pip install selenium webdriver-manager colorama
       - name: Executa login persistente
         env:
-          HABBLIVE_USERNAME_31: ${{ secrets.HABBLIVE_USERNAME_31 }}
-          HABBLIVE_PASSWORD_31: ${{ secrets.HABBLIVE_PASSWORD_31 }}
-          HABBLIVE_USERNAME_32: ${{ secrets.HABBLIVE_USERNAME_32 }}
-          HABBLIVE_PASSWORD_32: ${{ secrets.HABBLIVE_PASSWORD_32 }}
-          HABBLIVE_USERNAME_33: ${{ secrets.HABBLIVE_USERNAME_33 }}
-          HABBLIVE_PASSWORD_33: ${{ secrets.HABBLIVE_PASSWORD_33 }}
-          HABBLIVE_USERNAME_34: ${{ secrets.HABBLIVE_USERNAME_34 }}
-          HABBLIVE_PASSWORD_34: ${{ secrets.HABBLIVE_PASSWORD_34 }}
-          HABBLIVE_USERNAME_35: ${{ secrets.HABBLIVE_USERNAME_35 }}
-          HABBLIVE_PASSWORD_35: ${{ secrets.HABBLIVE_PASSWORD_35 }}
-          HABBLIVE_USERNAME_36: ${{ secrets.HABBLIVE_USERNAME_36 }}
-          HABBLIVE_PASSWORD_36: ${{ secrets.HABBLIVE_PASSWORD_36 }}
-          HABBLIVE_USERNAME_37: ${{ secrets.HABBLIVE_USERNAME_37 }}
-          HABBLIVE_PASSWORD_37: ${{ secrets.HABBLIVE_PASSWORD_37 }}
-          HABBLIVE_USERNAME_38: ${{ secrets.HABBLIVE_USERNAME_38 }}
-          HABBLIVE_PASSWORD_38: ${{ secrets.HABBLIVE_PASSWORD_38 }}
-          HABBLIVE_USERNAME_39: ${{ secrets.HABBLIVE_USERNAME_39 }}
-          HABBLIVE_PASSWORD
+          HABBLIVE_USERNAME_21: ${{ secrets.HABBLIVE_USERNAME_21 }}
+          HABBLIVE_PASSWORD_21: ${{ secrets.HABBLIVE_PASSWORD_21 }}
+          HABBLIVE_USERNAME_22: ${{ secrets.HABBLIVE_USERNAME_22 }}
+          HABBLIVE_PASSWORD_22: ${{ secrets.HABBLIVE_PASSWORD_22 }}
+          HABBLIVE_USERNAME_23: ${{ secrets.HABBLIVE_USERNAME_23 }}
+          HABBLIVE_PASSWORD_23: ${{ secrets.HABBLIVE_PASSWORD_23 }}
+          HABBLIVE_USERNAME_24: ${{ secrets.HABBLIVE_USERNAME_24 }}
+          HABBLIVE_PASSWORD_24: ${{ secrets.HABBLIVE_PASSWORD_24 }}
+          HABBLIVE_USERNAME_25: ${{ secrets.HABBLIVE_USERNAME_25 }}
+          HABBLIVE_PASSWORD_25: ${{ secrets.HABBLIVE_PASSWORD_25 }}
+          HABBLIVE_USERNAME_26: ${{ secrets.HABBLIVE_USERNAME_26 }}
+          HABBLIVE_PASSWORD_26: ${{ secrets.HABBLIVE_PASSWORD_26 }}
+          HABBLIVE_USERNAME_27: ${{ secrets.HABBLIVE_USERNAME_27 }}
+          HABBLIVE_PASSWORD_27: ${{ secrets.HABBLIVE_PASSWORD_27 }}
+          HABBLIVE_USERNAME_28: ${{ secrets.HABBLIVE_USERNAME_28 }}
+          HABBLIVE_PASSWORD_28: ${{ secrets.HABBLIVE_PASSWORD_28 }}
+          HABBLIVE_USERNAME_29: ${{ secrets.HABBLIVE_USERNAME_29 }}
+          HABBLIVE_PASSWORD_29: ${{ secrets.HABBLIVE_PASSWORD_29 }}
+          HABBLIVE_USERNAME_30: ${{ secrets.HABBLIVE_USERNAME_30 }}
+          HABBLIVE_PASSWORD_30: ${{ secrets.HABBLIVE_PASSWORD_30 }}
+        run: python persistent_login.py
