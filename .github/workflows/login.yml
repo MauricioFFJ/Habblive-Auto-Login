@@ -1,4 +1,4 @@
-name: Daily Habblive Login (Painel com ✅ e Auto-Stop)
+name: Daily Habblive Login (Painel com ✅, Auto-Stop e Resumo Final)
 
 on:
   schedule:
