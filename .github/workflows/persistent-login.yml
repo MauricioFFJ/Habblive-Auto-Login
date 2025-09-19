@@ -43,7 +43,7 @@ jobs:
     run: python persistent_login.py
 
       - name: Reiniciar workflow automaticamente
-        if: ${{ secrets.HABILITAR_REINICIO == 'true' }}
+        if: ${{ vars.HABILITAR_REINICIO == 'true' }}
         run: |
           echo "Reiniciando workflow automaticamente..."
           curl -X POST \
