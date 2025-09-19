@@ -23,7 +23,7 @@ This project uses GitHub Actions scheduled workflow to keep your nickname alive.
 This project uses GitHub Actions scheduled workflow to keep your active accounts indefinitely. In case of redirections or client outages, the accounts always re-enter automatically.
 To configure the desired actions, access the code [here](persistent_login.py).
 
-**NOTE:** Persistent Login is active for an average of 6 hours and must be reactivated after this period. It may also remain active for a shorter period.
+**NOTE:** Persistent Login is active for an average of 6 hours and must be reactivated after that period. If you want it to reactivate automatically, add the `HABILITAR_REINICIO` variable to the value `TRUE` [here](/Habblive-Auto-Login/settings/variables/actions).
 
 Just make changes to the following snippet:
 
@@ -46,7 +46,7 @@ NOME_QUARTO = "ROOM NAME"   # Nome exato do quarto.
 
 - This project aims to keep your account nicknames safe and to allow you to log in to a large number of accounts for the purpose of filling rooms or progressing your achievements.
 - Use at your own risk and use in moderation. We are not responsible for penalties from the Habblive.in staff team in case of misuse of this project.
-- This project may stop working if Habblive is updated. The last update was on `September 7, 2025`. **Follow the updates in the official repository [here](https://github.com/MauricioFFJ/Habblive-Auto-Login/).**
+- This project may stop working if Habblive is updated. The last update was on `September 19, 2025`. **Follow the updates in the official repository [here](https://github.com/MauricioFFJ/Habblive-Auto-Login/).**
 
 Project created by: **@EuSolitudine**
 
