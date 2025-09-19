@@ -8,7 +8,7 @@ on:
 jobs:
   login:
     # Só executa se HABILITAR_REINICIO for 'false' ou não estiver definida
-    if: ${{ vars.HABILITAR_REINICIO == 'false' || secrets.HABILITAR_REINICIO == '' }}
+    if: ${{ vars.HABILITAR_REINICIO == 'false' || vars..HABILITAR_REINICIO == '' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
