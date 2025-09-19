@@ -23,7 +23,7 @@ This project uses GitHub Actions scheduled workflow to keep your nickname alive.
 This project uses GitHub Actions scheduled workflow to keep your active accounts indefinitely. In case of redirections or client outages, the accounts always re-enter automatically.
 To configure the desired actions, access the code [here](persistent_login.py).
 
-**NOTE:** Persistent Login is active for an average of 6 hours and must be reactivated after that period. If you want it to reactivate automatically, add the `HABILITAR_REINICIO` variable to the value `true` in `Secrets and Variables` - `Actions` - `Variables`.
+**NOTE:** Persistent Login is active for an average of 6 hours and must be reactivated after that period. If you want it to reactivate automatically, add the `HABILITAR_REINICIO` variable to the value `true` in `Settings` - `Secrets and Variables` - `Actions` - `Variables`.
 
 Just make changes to the following snippet:
 
