@@ -40,5 +40,14 @@ jobs:
           HABBLIVE_PASSWORD_9: ${{ secrets.HABBLIVE_PASSWORD_9 }}
           HABBLIVE_USERNAME_10: ${{ secrets.HABBLIVE_USERNAME_10 }}
           HABBLIVE_PASSWORD_10: ${{ secrets.HABBLIVE_PASSWORD_10 }}
-          # Devido as limitações de IP, recomenda-se apenas logar no máximo em 10 contas por ação. Você pode executar as 5 ações, totalizando 50 contas.
-        run: python persistent_login.py
+    run: python persistent_login.py
+
+      - name: Reiniciar workflow automaticamente
+        if: ${{ secrets.HABILITAR_REINICIO == 'true' }}
+        run: |
+          echo "Reiniciando workflow automaticamente..."
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/${{ github.workflow }}.yml/dispatches \
+            -d '{"ref":"${{ github.ref_name }}"}'
