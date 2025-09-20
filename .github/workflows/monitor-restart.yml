@@ -16,18 +16,31 @@ jobs:
     if: ${{ vars.HABILITAR_REINICIO == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Reinicia workflow que acabou
+      - name: Dispara novamente o workflow que acabou
         run: |
           echo "Reiniciando workflow: ${{ github.event.workflow_run.name }}"
-          # Converte o nome do workflow para o arquivo .yml correspondente
-          if [ "${{ github.event.workflow_run.name }}" = "Persistent Login (Contas 1-10)" ]; then
-            WF_FILE="persistent-login.yml"
-          elif [ "${{ github.event.workflow_run.name }}" = "Daily Habblive Login" ]; then
-            WF_FILE="daily-habblive-login.yml"
-          else
-            echo "Workflow não mapeado para reinício."
-            exit 0
-          fi
+
+          case "${{ github.event.workflow_run.name }}" in
+            "Persistent Login (Contas 1-10)")
+              WF_FILE="persistent-login-1-10.yml"
+              ;;
+            "Persistent Login (Contas 11-20)")
+              WF_FILE="persistent-login-11-20.yml"
+              ;;
+            "Persistent Login (Contas 21-30)")
+              WF_FILE="persistent-login-21-30.yml"
+              ;;
+            "Persistent Login (Contas 31-40)")
+              WF_FILE="persistent-login-31-40.yml"
+              ;;
+            "Persistent Login (Contas 41-50)")
+              WF_FILE="persistent-login-41-50.yml"
+              ;;
+            *)
+              echo "Workflow não mapeado para reinício."
+              exit 0
+              ;;
+          esac
 
           curl -X POST \
             -H "Accept: application/vnd.github+json" \
