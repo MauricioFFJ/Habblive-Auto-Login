@@ -1,9 +1,10 @@
 name: Persistent Login (Contas 1-10)
+
 on:
   workflow_dispatch:
 
 jobs:
-  persistent-login:
+  persistent-login-1-10:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -18,7 +19,7 @@ jobs:
         run: |
           pip install selenium webdriver-manager colorama
 
-      - name: Executa login persistente com painel e ações
+      - name: Executa login persistente (Contas 1-10)
         env:
           HABBLIVE_USERNAME_1: ${{ secrets.HABBLIVE_USERNAME_1 }}
           HABBLIVE_PASSWORD_1: ${{ secrets.HABBLIVE_PASSWORD_1 }}
@@ -41,13 +42,3 @@ jobs:
           HABBLIVE_USERNAME_10: ${{ secrets.HABBLIVE_USERNAME_10 }}
           HABBLIVE_PASSWORD_10: ${{ secrets.HABBLIVE_PASSWORD_10 }}
         run: python persistent_login.py
-
-      - name: Reiniciar workflow automaticamente
-        if: ${{ vars.HABILITAR_REINICIO == 'true' }}
-        run: |
-          echo "Reiniciando workflow automaticamente..."
-          curl -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/${{ github.repository }}/actions/workflows/${{ github.workflow }}.yml/dispatches \
-            -d '{"ref":"${{ github.ref_name }}"}'
