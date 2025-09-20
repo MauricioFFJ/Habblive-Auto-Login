@@ -9,6 +9,7 @@ Log in quickly (to keep your nickname) or log in permanently (to earn achievemen
 3. Go to Settings > Secrets and Variables > Actions . And click the button `New Repository Secret`;
 4. For the secret name, you will use `HABBLIVE_USERNAME_1` (nickname) and `HABBLIVE_PASSWORD_1` (account password). This repository supports up to 50 accounts, and can replace the number 1 from 1 to 50;
 5. Go the your forked repository and go the Actions tab and press the button `I understand my workflows, go ahead and enable them`;
+6. Go to Settings > Actions > General > Workflow permissions > Read and write permissions > Save.
 
 **🚩 Attention:** Saving your credentials as secret names on GitHub keeps your accounts secure, even if the repository is public!
 
@@ -23,7 +24,7 @@ This project uses GitHub Actions scheduled workflow to keep your nickname alive.
 This project uses GitHub Actions scheduled workflow to keep your active accounts indefinitely. In case of redirections or client outages, the accounts always re-enter automatically.
 To configure the desired actions, access the code [here](persistent_login.py).
 
-**NOTE:** Persistent Login is active for an average of 6 hours and must be reactivated after that period. If you want it to reactivate automatically, add the `HABILITAR_REINICIO` variable to the value `true` in `Settings` - `Secrets and Variables` - `Actions` - `Variables`.
+**NOTE:** Persistent Login is active for an average of 6 hours and must be reactivated after that period. If you want it to reactivate automatically, add the `HABILITAR_REINICIO` variable to the value `true` in `Settings` > `Secrets and Variables` > `Actions` > `Variables`.
 
 Just make changes to the following snippet:
 
