@@ -4,15 +4,22 @@ on:
   workflow_dispatch:
 
 jobs:
-  login-31-40:
+  persistent-login-31-40:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Configura Python
+        uses: actions/setup-python@v4
         with:
           python-version: "3.10"
-      - run: pip install selenium webdriver-manager colorama
-      - name: Executa login persistente
+
+      - name: Instala dependências
+        run: |
+          pip install selenium webdriver-manager colorama
+
+      - name: Executa login persistente (Contas 31-40)
         env:
           HABBLIVE_USERNAME_31: ${{ secrets.HABBLIVE_USERNAME_31 }}
           HABBLIVE_PASSWORD_31: ${{ secrets.HABBLIVE_PASSWORD_31 }}
@@ -35,13 +42,3 @@ jobs:
           HABBLIVE_USERNAME_40: ${{ secrets.HABBLIVE_USERNAME_40 }}
           HABBLIVE_PASSWORD_40: ${{ secrets.HABBLIVE_PASSWORD_40 }}
         run: python persistent_login.py
-
-      - name: Reiniciar workflow automaticamente
-        if: ${{ vars.HABILITAR_REINICIO == 'true' }}
-        run: |
-          echo "Reiniciando workflow automaticamente..."
-          curl -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/${{ github.repository }}/actions/workflows/${{ github.workflow }}.yml/dispatches \
-            -d '{"ref":"${{ github.ref_name }}"}'
