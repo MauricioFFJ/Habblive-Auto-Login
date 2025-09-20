@@ -34,7 +34,7 @@ jobs:
           HABBLIVE_PASSWORD_29: ${{ secrets.HABBLIVE_PASSWORD_29 }}
           HABBLIVE_USERNAME_30: ${{ secrets.HABBLIVE_USERNAME_30 }}
           HABBLIVE_PASSWORD_30: ${{ secrets.HABBLIVE_PASSWORD_30 }}
-    run: python persistent_login.py
+        run: python persistent_login.py
 
       - name: Reiniciar workflow automaticamente
         if: ${{ vars.HABILITAR_REINICIO == 'true' }}
