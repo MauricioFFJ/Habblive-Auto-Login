@@ -1,0 +1,36 @@
+name: Reset Workflows
+
+on:
+  workflow_run:
+    workflows: 
+      - "Persistent Login (Contas 1-10)"
+      - "Persistent Login (Contas 11-20)"
+      - "Persistent Login (Contas 21-30)"
+      - "Persistent Login (Contas 31-40)"
+      - "Persistent Login (Contas 41-50)"
+    types:
+      - completed
+
+jobs:
+  restart:
+    if: ${{ vars.HABILITAR_REINICIO == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reinicia workflow que acabou
+        run: |
+          echo "Reiniciando workflow: ${{ github.event.workflow_run.name }}"
+          # Converte o nome do workflow para o arquivo .yml correspondente
+          if [ "${{ github.event.workflow_run.name }}" = "Persistent Login (Contas 1-10)" ]; then
+            WF_FILE="persistent-login.yml"
+          elif [ "${{ github.event.workflow_run.name }}" = "Daily Habblive Login" ]; then
+            WF_FILE="daily-habblive-login.yml"
+          else
+            echo "Workflow não mapeado para reinício."
+            exit 0
+          fi
+
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/$WF_FILE/dispatches \
+            -d '{"ref":"${{ github.ref_name }}"}'
