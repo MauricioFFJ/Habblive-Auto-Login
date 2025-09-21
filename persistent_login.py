@@ -14,11 +14,11 @@ from colorama import Fore, Style, init
 # ===== CONFIGURAÇÃO =====
 URL_BIGCLIENT = "https://habblive.in/bigclient/"
 CHECK_INTERVAL = 15  # segundos entre verificações
-EXECUTAR_ACOES = True  # True = faz ações no quarto, False = só loga/reloga
+EXECUTAR_ACOES = False  # True = faz ações no quarto, False = só loga/reloga
 
 # Configurações personalizadas
-DONO_QUARTO = "Solitudine"         # Nome do dono a ser digitado no filtro
-NOME_QUARTO = "Picnic [a sua vida importa]"   # Nome exato (ou parte) do quarto a ser clicado
+DONO_QUARTO = "OWNER NAME"         # Nome do dono a ser digitado no filtro
+NOME_QUARTO = "ROOM NAME"   # Nome exato (ou parte) do quarto a ser clicado
 # ========================
 
 init(autoreset=True)
