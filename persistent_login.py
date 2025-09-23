@@ -238,48 +238,21 @@ def iniciar_sessao(username, password, index):
                 executar_acoes_no_quarto(driver, index)
 
             # Monitoramento de sessão e reinícios
-           from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
-import time
+            while True:
+                current_url = driver.current_url
 
-CHECK_INTERVAL = 15   # intervalo entre verificações
-RETRY_DELAY = 5       # tempo entre a primeira e segunda tentativa
-WAIT_TIMEOUT = 10     # tempo máximo para esperar o elemento aparecer
-
-while True:
-    time.sleep(CHECK_INTERVAL)
-
-    # Primeira tentativa
-    start_time = time.time()
-    try:
-        WebDriverWait(driver, WAIT_TIMEOUT).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms"))
-        )
-        elapsed = time.time() - start_time
-        log(f"[Conta {index}] ✅ Elemento encontrado na primeira tentativa (tempo: {elapsed:.2f}s).", Fore.GREEN)
-
-    except TimeoutException:
-        elapsed = time.time() - start_time
-        log(f"[Conta {index}] ⚠️ Elemento não encontrado na primeira tentativa (tempo: {elapsed:.2f}s). Tentando novamente...", Fore.YELLOW)
-        time.sleep(RETRY_DELAY)
-
-        # Segunda tentativa
-        start_time_retry = time.time()
-        try:
-            WebDriverWait(driver, WAIT_TIMEOUT).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms"))
-            )
-            elapsed_retry = time.time() - start_time_retry
-            log(f"[Conta {index}] ✅ Elemento encontrado na segunda tentativa (tempo: {elapsed_retry:.2f}s). Ignorando relog.", Fore.GREEN)
-
-        except TimeoutException:
-            elapsed_retry = time.time() - start_time_retry
-            log(f"[Conta {index}] ❌ Elemento ausente nas duas tentativas (tempo segunda: {elapsed_retry:.2f}s). Relogando...", Fore.RED)
-            driver.quit()
-            time.sleep(2)
-            break
+                if current_url != URL_BIGCLIENT:
+                    # Verifica se o elemento principal do Big Client ainda está presente
+                    try:
+                        driver.find_element(By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
+                        # Elemento encontrado → jogo ainda aberto, ignora redirecionamento indireto
+                        pass
+                    except:
+                        # Elemento não encontrado → cliente realmente saiu
+                        log(f"[Conta {index}] ⚠️ Redirecionado para fora ({current_url}). Relogando...", Fore.YELLOW)
+                        driver.quit()
+                        time.sleep(2)
+                        break
 
                 try:
                     driver.find_element(By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
