@@ -3,15 +3,16 @@ name: Persistent Login (Contas 1-10)
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 */6 * * *"
+    - cron: "0 */6 * * *" # Executa a cada 6 horas
 
 concurrency:
   group: persistent-login-1-10
-  cancel-in-progress: true
+  cancel-in-progress: false # Evita execução simultânea; nova espera a anterior terminar
 
 jobs:
   persistent-login-1-10:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
