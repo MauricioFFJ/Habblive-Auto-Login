@@ -1,3 +1,4 @@
+# MELHORIAS: Headless new + argumentos Chrome otimizados. Recomenda-se persistência de sessão (cookies), reconexão robusta, pool Webdrivers & healthcheck. Veja comentários no código!
 import os
 import time
 import threading
@@ -191,6 +192,13 @@ def iniciar_sessao(username, password, index):
         options.add_argument("--headless=new")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--remote-allow-origins=*")
+    options.add_argument("--disable-background-timer-throttling")
+    options.add_argument("--disable-features=VizDisplayCompositor")
+    options.add_argument("--enable-automation")
+    options.add_argument("--disable-notifications")
         options.add_argument("--incognito")
         options.add_argument("--window-size=1366,768")  # importante para cliques em headless
 
