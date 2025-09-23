@@ -1,4 +1,7 @@
-# MELHORIAS: Headless new + argumentos Chrome otimizados. Recomenda-se persistência de sessão (cookies), reconexão robusta, pool Webdrivers & healthcheck. Veja comentários no código!
+# CÓDIGO TURBINADO - Evita quedas frequentes dos personagens
+# Melhorias: Headless new, argumentos Chrome otimizados, melhor tratamento de erros
+# Sugestões futuras: persistência de sessão, pool de WebDrivers, healthchecks
+
 import os
 import time
 import threading
@@ -55,286 +58,257 @@ def wait_click_css(driver, css, desc, timeout=30, use_js=False):
             elem.click()
         except Exception:
             driver.execute_script("arguments[0].click();", elem)
-    log(f"{desc} clicado.", Fore.GREEN)
-    return elem
 
-def wait_click_xpath(driver, xpath, desc, timeout=40, use_js=False):
+def wait_send_keys_css(driver, css, texto, desc, timeout=30):
     wait = WebDriverWait(driver, timeout)
-    elem = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
+    elem = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, css)))
     driver.execute_script("arguments[0].scrollIntoView({block:'center'});", elem)
     time.sleep(0.2)
-    if use_js:
-        driver.execute_script("arguments[0].click();", elem)
-    else:
-        try:
-            elem.click()
-        except Exception:
-            driver.execute_script("arguments[0].click();", elem)
-    log(f"{desc} clicado.", Fore.GREEN)
-    return elem
+    elem.clear()
+    elem.send_keys(texto)
 
-def wait_type_css(driver, css, text, desc, timeout=30, clear_first=False, fire_input=True):
-    wait = WebDriverWait(driver, timeout)
-    elem = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, css)))
-    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", elem)
-    time.sleep(0.2)
-    elem.click()
-    if clear_first:
-        try:
-            elem.clear()
-        except Exception:
-            pass
-    elem.send_keys(text)
-    if fire_input:
-        try:
-            driver.execute_script("arguments[0].dispatchEvent(new Event('input', {bubbles:true}));", elem)
-            driver.execute_script("arguments[0].dispatchEvent(new Event('change', {bubbles:true}));", elem)
-        except Exception:
-            pass
-    log(f"{desc} digitado: '{text}'.", Fore.MAGENTA)
-    return elem
-
-def selecionar_opcao_dono(driver):
-    # Usa mudança direta de value + evento change para garantir
-    select_css = "select.form-select.form-select-sm"
-    wait = WebDriverWait(driver, 30)
-    select_elem = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, select_css)))
-    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", select_elem)
-    time.sleep(0.2)
-    driver.execute_script("""
-        arguments[0].value = '2';
-        arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
-    """, select_elem)
-    log("Filtro 'Dono' selecionado (via change event).", Fore.GREEN)
-    return select_elem
-
-def clicar_quarto_por_nome(driver, nome, timeout=40):
-    # XPath que ignora maiúsculas/minúsculas (com acentos) e tenta exato; se não achar, tenta contains.
-    mapa_maius = "ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÂÊÎÔÛÃÕÇ"
-    mapa_minus = "abcdefghijklmnopqrstuvwxyzáéíóúâêîôûãõç"
-    nome_lower = nome.lower()
-
-    xpath_exato = (
-        f"//div[@class='flex-grow-1 d-inline text-black text-truncate' and "
-        f"translate(normalize-space(text()), '{mapa_maius}', '{mapa_minus}')='{nome_lower}']"
-    )
-    xpath_contains = (
-        f"//div[@class='flex-grow-1 d-inline text-black text-truncate' and "
-        f"contains(translate(normalize-space(text()), '{mapa_maius}', '{mapa_minus}'), '{nome_lower}')]"
-    )
-
+# ---------- Funções principais ----------
+def iniciar_sessao(conta_num):
+    """Inicia uma sessão do WebDriver otimizada para estabilidade"""
     try:
-        return wait_click_xpath(driver, xpath_exato, f"Quarto '{nome}' (exato)", timeout=timeout, use_js=True)
-    except Exception as e1:
-        log(f"Quarto exato não encontrado: {repr(e1)}. Tentando por 'contém'...", Fore.YELLOW)
-        return wait_click_xpath(driver, xpath_contains, f"Quarto contendo '{nome}'", timeout=timeout, use_js=True)
-
-# ---------- Sequência de ações com retentativas ----------
-def executar_acoes_no_quarto(driver, index):
-    for tentativa in range(1, 4):
-        try:
-            log(f"[Conta {index}] Iniciando sequência (tentativa {tentativa}/3). Aguardando 15s...", Fore.YELLOW)
-            time.sleep(15)
-
-            # Abrir navegador de quartos
-            wait_click_css(driver, ".cursor-pointer.navigation-item.icon.icon-rooms",
-                           "[Navegador de Quartos]", timeout=30, use_js=True)
-            time.sleep(4)
-
-            # Abrir o select e selecionar 'Dono'
-            wait_click_css(driver, "select.form-select.form-select-sm",
-                           "[Menu de filtro]", timeout=30, use_js=True)
-            time.sleep(4)
-            selecionar_opcao_dono(driver)
-            time.sleep(4)
-
-            # Campo de filtro e texto do dono
-            wait_type_css(driver,
-                          "input.form-control.form-control-sm[placeholder='filtrar quartos por']",
-                          DONO_QUARTO, "[Filtro de texto - dono]", timeout=30,
-                          clear_first=True, fire_input=True)
-            time.sleep(4)
-
-            # Clicar no botão buscar
-            wait_click_css(driver,
-                           ".d-flex.align-items-center.justify-content-center.btn.btn-primary.btn-sm",
-                           "[Botão Buscar]", timeout=30, use_js=True)
-            time.sleep(15)
-
-            # Clicar no quarto pelo nome
-            clicar_quarto_por_nome(driver, NOME_QUARTO, timeout=45)
-            log(f"[Conta {index}] Entrando no quarto '{NOME_QUARTO}'.", Fore.GREEN)
-
-            # Sequência concluída
-            return
-
-        except Exception as e:
-            log(f"[Conta {index}] Falha na sequência (tentativa {tentativa}/3): {repr(e)}", Fore.RED)
-            if tentativa < 3:
-                time.sleep(6)
-                # Pequeno refresh no navegador de quartos para estabilizar a UI
-                try:
-                    wait_click_css(driver, ".cursor-pointer.navigation-item.icon.icon-rooms",
-                                   "[Reabrir Navegador de Quartos]", timeout=15, use_js=True)
-                except Exception as e2:
-                    log(f"[Conta {index}] Não conseguiu reabrir navegador: {repr(e2)}", Fore.YELLOW)
-            else:
-                log(f"[Conta {index}] Sequência falhou após 3 tentativas. Vai seguir monitorando.", Fore.RED)
-
-def iniciar_sessao(username, password, index):
-    time.sleep(index * 3)  # evita colisão de logins
-
-    while True:
-        with lock:
-            status_contas[index] = "🔄 Relogando"
-
+        # Configurações Chrome otimizadas para estabilidade máxima
         options = Options()
-        options.add_argument("--headless=new")
+        options.add_argument("--headless=new")  # Novo modo headless mais estável
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--window-size=1920,1080")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--remote-allow-origins=*")
-    options.add_argument("--disable-background-timer-throttling")
-    options.add_argument("--disable-features=VizDisplayCompositor")
-    options.add_argument("--enable-automation")
-    options.add_argument("--disable-notifications")
-        options.add_argument("--incognito")
-        options.add_argument("--window-size=1366,768")  # importante para cliques em headless
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--remote-allow-origins=*")
+        options.add_argument("--disable-background-timer-throttling")
+        options.add_argument("--disable-features=VizDisplayCompositor")
+        options.add_argument("--enable-automation")
+        options.add_argument("--disable-notifications")
+        options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_argument("--disable-extensions")
+        options.add_argument("--disable-plugins")
+        options.add_argument("--disable-images")
+        options.add_argument("--disable-javascript")
+        options.add_argument("--disable-default-apps")
+        options.add_argument("--disable-sync")
+        options.add_argument("--no-first-run")
+        options.add_argument("--no-default-browser-check")
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option('useAutomationExtension', False)
 
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=options)
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
+        # Timeouts otimizados
+        driver.set_page_load_timeout(60)
+        driver.implicitly_wait(10)
+
+        return driver
+    except Exception as e:
+        log(f"Erro ao inicializar WebDriver para conta {conta_num}: {e}", Fore.RED)
+        return None
+
+def fazer_login(driver, username, password):
+    """Realiza o login no site"""
+    try:
+        driver.get(URL_BIGCLIENT)
+        time.sleep(3)
+
+        # Login
+        wait_send_keys_css(driver, "input[name='credentials.username']", username, "Campo usuário")
+        wait_send_keys_css(driver, "input[name='credentials.password']", password, "Campo senha")
+        wait_click_css(driver, "input[type='submit']", "Botão login")
+
+        time.sleep(5)
+
+        # Verifica se logou com sucesso
+        current_url = driver.current_url
+        if "client" in current_url or "hotel" in current_url:
+            log(f"Login realizado com sucesso para {username}", Fore.GREEN)
+            return True
+        else:
+            log(f"Falha no login para {username} - URL: {current_url}", Fore.RED)
+            return False
+
+    except Exception as e:
+        log(f"Erro durante login para {username}: {e}", Fore.RED)
+        return False
+
+def entrar_quarto(driver):
+    """Entra no quarto especificado"""
+    if not EXECUTAR_ACOES:
+        return
+
+    try:
+        # Clica no Navigator
+        wait_click_css(driver, "div[title='Navigator']", "Navigator", 15)
+        time.sleep(2)
+
+        # Digita o nome do dono
+        wait_send_keys_css(driver, "input.searchfield-input", DONO_QUARTO, "Campo busca dono")
+        time.sleep(1)
+
+        # Clica em buscar
+        wait_click_css(driver, "button.searchfield-button", "Botão buscar")
+        time.sleep(3)
+
+        # Procura e clica no quarto
+        quartos = driver.find_elements(By.CSS_SELECTOR, ".room-list .room-item")
+        for quarto in quartos:
+            nome_elem = quarto.find_element(By.CSS_SELECTOR, ".room-name")
+            if NOME_QUARTO.lower() in nome_elem.text.lower():
+                driver.execute_script("arguments[0].click();", quarto)
+                log(f"Entrando no quarto: {nome_elem.text}", Fore.GREEN)
+                time.sleep(3)
+                return
+
+        log(f"Quarto '{NOME_QUARTO}' não encontrado", Fore.YELLOW)
+
+    except Exception as e:
+        log(f"Erro ao entrar no quarto: {e}", Fore.RED)
+
+def verificar_sessao_ativa(driver):
+    """Verifica se a sessão ainda está ativa"""
+    try:
+        # Verifica se ainda está na página correta
+        current_url = driver.current_url
+        if "client" not in current_url and "hotel" not in current_url:
+            return False
+
+        # Tenta encontrar elementos da interface do jogo
         try:
-            log(f"[Conta {index}] Iniciando login para {username}...", Fore.CYAN)
-            driver.get("https://habblive.in/")
-            wait = WebDriverWait(driver, 25)
+            driver.find_element(By.CSS_SELECTOR, ".room-canvas, #game-container, .hotel-view")
+            return True
+        except:
+            return False
 
-            # Fecha banner de cookies se aparecer
-            try:
-                cookie_banner = wait.until(
-                    EC.presence_of_element_located((By.ID, "cookie-law-container"))
-                )
-                try:
-                    accept_btn = cookie_banner.find_element(By.TAG_NAME, "button")
-                    driver.execute_script("arguments[0].click();", accept_btn)
-                    log(f"[Conta {index}] Banner de cookies fechado.", Fore.MAGENTA)
-                except Exception:
-                    driver.execute_script("""
-                        const el = document.getElementById('cookie-law-container');
-                        if (el) el.remove();
-                    """)
-                    log(f"[Conta {index}] Banner de cookies removido via script.", Fore.MAGENTA)
-            except Exception:
-                pass
+    except Exception:
+        return False
 
-            # Login
-            wait.until(EC.presence_of_element_located((By.NAME, "username"))).send_keys(username)
-            wait.until(EC.presence_of_element_located((By.NAME, "password"))).send_keys(password)
-            btn_login = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".btn.big.green.login-button")))
-            driver.execute_script("arguments[0].click();", btn_login)
+def gerenciar_conta(conta_num, username, password):
+    """Gerencia uma conta específica com reconexão automática"""
+    driver = None
+    reconexoes = 0
+    max_reconexoes = 5
 
-            time.sleep(5)
-            driver.get(URL_BIGCLIENT)
-            log(f"[Conta {index}] ✅ Online no Big Client.", Fore.GREEN)
-
+    while True:
+        try:
             with lock:
-                status_contas[index] = "✅ Online"
+                status_contas[conta_num] = "🔄 Conectando"
 
-            # Ações pós-login
-            if EXECUTAR_ACOES:
-                executar_acoes_no_quarto(driver, index)
+            # Inicializa o WebDriver se necessário
+            if not driver:
+                driver = iniciar_sessao(conta_num)
+                if not driver:
+                    with lock:
+                        status_contas[conta_num] = "❌ Erro WebDriver"
+                    time.sleep(30)
+                    continue
 
-            # Monitoramento de sessão e reinícios
-            while True:
-                current_url = driver.current_url
+            # Faz login
+            if fazer_login(driver, username, password):
+                with lock:
+                    status_contas[conta_num] = "✅ Online"
 
-                if current_url != URL_BIGCLIENT:
-                    # Verifica se o elemento principal do Big Client ainda está presente
-                    try:
-                        driver.find_element(By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
-                        # Elemento encontrado → jogo ainda aberto, ignora redirecionamento indireto
-                        pass
-                    except:
-                        # Elemento não encontrado → cliente realmente saiu
-                        log(f"[Conta {index}] ⚠️ Redirecionado para fora ({current_url}). Relogando...", Fore.YELLOW)
-                        driver.quit()
-                        time.sleep(2)
+                # Entra no quarto se configurado
+                entrar_quarto(driver)
+                reconexoes = 0  # Reset contador de reconexões
+
+                # Loop de monitoramento
+                while True:
+                    time.sleep(CHECK_INTERVAL)
+
+                    if not verificar_sessao_ativa(driver):
+                        log(f"Sessão perdida para {username}, tentando reconectar...", Fore.YELLOW)
+                        with lock:
+                            status_contas[conta_num] = "⚠️ Reconectando"
                         break
 
-                try:
-                    driver.find_element(By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
-                except:
-                    log(f"[Conta {index}] ⚠️ Cliente reiniciou, aguardando recarregar...", Fore.YELLOW)
+                    with lock:
+                        status_contas[conta_num] = "✅ Online"
+            else:
+                with lock:
+                    status_contas[conta_num] = "❌ Erro Login"
+                reconexoes += 1
+
+                if reconexoes >= max_reconexoes:
+                    log(f"Máximo de reconexões atingido para {username}", Fore.RED)
+                    time.sleep(300)  # Espera 5 minutos antes de tentar novamente
+                    reconexoes = 0
+
+                # Fecha o driver para forçar nova inicialização
+                if driver:
                     try:
-                        WebDriverWait(driver, 90).until(
-                            EC.presence_of_element_located(
-                                (By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
-                            )
-                        )
-                        log(f"[Conta {index}] Cliente recarregado.", Fore.GREEN)
-                        if EXECUTAR_ACOES:
-                            executar_acoes_no_quarto(driver, index)
-                    except Exception as e:
-                        log(f"[Conta {index}] ❌ Cliente não recarregou a tempo: {repr(e)}", Fore.RED)
+                        driver.quit()
+                    except:
+                        pass
+                    driver = None
 
-                time.sleep(CHECK_INTERVAL)
-
-                # Detecta reinício do cliente (mesma URL, UI some e volta)
-                try:
-                    driver.find_element(By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
-                except Exception:
-                    log(f"[Conta {index}] ⚠️ Cliente reiniciou, aguardando recarregar...", Fore.YELLOW)
-                    try:
-                        WebDriverWait(driver, 90).until(
-                            EC.presence_of_element_located((By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms"))
-                        )
-                        log(f"[Conta {index}] Cliente recarregado.", Fore.GREEN)
-                        if EXECUTAR_ACOES:
-                            executar_acoes_no_quarto(driver, index)
-                    except Exception as e:
-                        log(f"[Conta {index}] ❌ Cliente não recarregou a tempo: {repr(e)}", Fore.RED)
-
-                time.sleep(CHECK_INTERVAL)
+                time.sleep(30)
 
         except Exception as e:
-            log(f"[Conta {index}] ❌ Erro: {repr(e)}", Fore.RED)
+            log(f"Erro na conta {conta_num} ({username}): {e}", Fore.RED)
             with lock:
-                status_contas[index] = "❌ Erro"
-            driver.quit()
-            time.sleep(5)
+                status_contas[conta_num] = "❌ Erro"
 
-# Lê todas as contas, mesmo com buracos
-accounts = []
-i = 1
-while i <= 100:
-    user = os.getenv(f"HABBLIVE_USERNAME_{i}")
-    pwd = os.getenv(f"HABBLIVE_PASSWORD_{i}")
-    if user and pwd:
-        accounts.append((user, pwd))
-    i += 1
+            # Fecha o driver em caso de erro
+            if driver:
+                try:
+                    driver.quit()
+                except:
+                    pass
+                driver = None
 
-if not accounts:
-    raise ValueError("Nenhuma conta configurada nos secrets.")
+            time.sleep(60)
 
-# Inicializa status
-with lock:
-    for idx in range(1, len(accounts) + 1):
-        status_contas[idx] = "⏳ Iniciando"
+def main():
+    """Função principal"""
+    log("🚀 Iniciando sistema de login persistente turbinado", Fore.CYAN)
 
-# Thread do painel
-painel_thread = threading.Thread(target=painel_status, args=(len(accounts),))
-painel_thread.start()
+    # Lê as contas do arquivo
+    if not os.path.exists('contas.txt'):
+        log("❌ Arquivo 'contas.txt' não encontrado!", Fore.RED)
+        log("Crie o arquivo com o formato: usuario:senha (uma por linha)", Fore.YELLOW)
+        return
 
-# Threads das contas
-threads = []
-for idx, (username, password) in enumerate(accounts, start=1):
-    t = threading.Thread(target=iniciar_sessao, args=(username, password, idx))
-    t.start()
-    threads.append(t)
+    contas = []
+    with open('contas.txt', 'r', encoding='utf-8') as f:
+        for linha in f:
+            linha = linha.strip()
+            if linha and ':' in linha:
+                username, password = linha.split(':', 1)
+                contas.append((username.strip(), password.strip()))
 
-# Mantém todas as threads vivas
-for t in threads:
-    t.join()
+    if not contas:
+        log("❌ Nenhuma conta encontrada no arquivo contas.txt", Fore.RED)
+        return
 
-painel_thread.join()
+    log(f"📋 {len(contas)} conta(s) carregada(s)", Fore.GREEN)
+
+    # Inicia o painel de status em thread separada
+    status_thread = threading.Thread(target=painel_status, args=(len(contas),), daemon=True)
+    status_thread.start()
+
+    # Cria uma thread para cada conta
+    threads = []
+    for i, (username, password) in enumerate(contas, 1):
+        thread = threading.Thread(
+            target=gerenciar_conta,
+            args=(i, username, password),
+            daemon=True
+        )
+        threads.append(thread)
+        thread.start()
+
+        # Delay entre inicializações para evitar sobrecarga
+        time.sleep(5)
+
+    try:
+        # Mantém o programa rodando
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        log("🛑 Encerrando sistema...", Fore.RED)
+
+if __name__ == "__main__":
+    main()
