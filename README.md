@@ -49,7 +49,7 @@ NOME_QUARTO = "ROOM NAME"   # Nome exato do quarto.
 - Use at your own risk and use in moderation. We are not responsible for penalties from the Habblive.in staff team in case of misuse of this project.
 - This project may stop working if Habblive is updated. The last update was on `September 22, 2025`. **Follow the updates in the official repository [here](https://github.com/MauricioFFJ/Habblive-Auto-Login/).**
 
-Project created by: **@EuSolitudine**
+Project created by: **@EuSolitudine** 
 
 <a href="https://x.com/@EuSolitudine" target="_blank">
   <img src="https://img.shields.io/badge/Follow me on X-000000?style=for-the-badge&logo=x&logoColor=white" alt="@EuSolitudine">
