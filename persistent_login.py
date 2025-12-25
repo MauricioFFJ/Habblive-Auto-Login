@@ -13,10 +13,10 @@ from colorama import Fore, Style, init
 
 # ===== CONFIGURAÇÃO =====
 URL_BIGCLIENT = "https://habblive.in/bigclient/"
-CHECK_INTERVAL = 40  # segundos entre verificações
+CHECK_INTERVAL = 30  # segundos entre verificações
 EXECUTAR_ACOES = False  # True = faz ações no quarto, False = só loga/reloga
 CALENDAR = True        # True = ativa rotina do calendário
-JOIN_GROUP = True      # True = ativa rotina de juntar-se ao grupo
+JOIN_GROUP = False      # True = ativa rotina de juntar-se ao grupo
 
 # Configurações personalizadas
 DONO_QUARTO = "OWNER NAME"         # Nome do dono a ser digitado no filtro
