@@ -1,0 +1,51 @@
+name: Persistent Login (Contas 41-45)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 */6 * * *" # Executa a cada 6 horas
+
+concurrency:
+  group: persistent-login-41-45
+  cancel-in-progress: false # Evita execução simultânea; nova espera a anterior terminar
+
+jobs:
+  persistent-login-41-45:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Configura Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Instala dependências
+        run: |
+          pip install selenium webdriver-manager colorama
+
+      - name: Executa login persistente (Contas 41-45)
+        env:
+          HABBLIVE_USERNAME_41: ${{ secrets.HABBLIVE_USERNAME_41 }}
+          HABBLIVE_PASSWORD_41: ${{ secrets.HABBLIVE_PASSWORD_41 }}
+          HABBLIVE_USERNAME_42: ${{ secrets.HABBLIVE_USERNAME_42 }}
+          HABBLIVE_PASSWORD_42: ${{ secrets.HABBLIVE_PASSWORD_42 }}
+          HABBLIVE_USERNAME_43: ${{ secrets.HABBLIVE_USERNAME_43 }}
+          HABBLIVE_PASSWORD_43: ${{ secrets.HABBLIVE_PASSWORD_43 }}
+          HABBLIVE_USERNAME_44: ${{ secrets.HABBLIVE_USERNAME_44 }}
+          HABBLIVE_PASSWORD_44: ${{ secrets.HABBLIVE_PASSWORD_44 }}
+          HABBLIVE_USERNAME_45: ${{ secrets.HABBLIVE_USERNAME_45 }}
+          HABBLIVE_PASSWORD_45: ${{ secrets.HABBLIVE_PASSWORD_45 }}
+        run: python persistent_login.py
+
+      - name: Auto-disparo para reinício imediato
+        if: ${{ vars.HABILITAR_REINICIO == 'true' }}
+        run: |
+          echo "Reiniciando workflow imediatamente..."
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/persistent-login-41-45.yml/dispatches \
+            -d '{"ref":"${{ github.ref_name }}"}'
