@@ -6,7 +6,7 @@ on:
     - cron: "0 */6 * * *" # Executa a cada 6 horas
 
 concurrency:
-  group: persistent-login-6-10
+  group: persistent-login-06-10
   cancel-in-progress: false # Evita execução simultânea; nova espera a anterior terminar
 
 jobs:
@@ -47,5 +47,5 @@ jobs:
           curl -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/${{ github.repository }}/actions/workflows/persistent-login-6-10.yml/dispatches \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/persistent-login-06-10.yml/dispatches \
             -d '{"ref":"${{ github.ref_name }}"}'
