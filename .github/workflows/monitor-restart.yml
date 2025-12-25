@@ -3,11 +3,16 @@ name: Reset Workflows
 on:
   workflow_run:
     workflows: 
-      - "Persistent Login (Contas 1-10)"
-      - "Persistent Login (Contas 11-20)"
-      - "Persistent Login (Contas 21-30)"
-      - "Persistent Login (Contas 31-40)"
-      - "Persistent Login (Contas 41-50)"
+      - "Persistent Login (Contas 1-5)"
+      - "Persistent Login (Contas 6-10)"
+      - "Persistent Login (Contas 11-15)"
+      - "Persistent Login (Contas 16-20)"
+      - "Persistent Login (Contas 21-25)"
+      - "Persistent Login (Contas 26-30)"
+      - "Persistent Login (Contas 31-35)"
+      - "Persistent Login (Contas 36-40)"
+      - "Persistent Login (Contas 41-45)"
+      - "Persistent Login (Contas 46-50)"
     types:
       - completed
 
@@ -21,20 +26,35 @@ jobs:
           echo "Reiniciando workflow: ${{ github.event.workflow_run.name }}"
 
           case "${{ github.event.workflow_run.name }}" in
-            "Persistent Login (Contas 1-10)")
-              WF_FILE="persistent-login.yml"
+            "Persistent Login (Contas 1-5)")
+              WF_FILE="persistent-login-1-5.yml"
               ;;
-            "Persistent Login (Contas 11-20)")
-              WF_FILE="persistent-login-11-20.yml"
+            "Persistent Login (Contas 6-10)")
+              WF_FILE="persistent-login-6-10.yml"
               ;;
-            "Persistent Login (Contas 21-30)")
-              WF_FILE="persistent-login-21-30.yml"
+            "Persistent Login (Contas 11-15)")
+              WF_FILE="persistent-login-11-15.yml"
               ;;
-            "Persistent Login (Contas 31-40)")
-              WF_FILE="persistent-login-31-40.yml"
+            "Persistent Login (Contas 16-20)")
+              WF_FILE="persistent-login-16-20.yml"
               ;;
-            "Persistent Login (Contas 41-50)")
-              WF_FILE="persistent-login-41-50.yml"
+            "Persistent Login (Contas 21-25)")
+              WF_FILE="persistent-login-21-25.yml"
+              ;;
+            "Persistent Login (Contas 26-30)")
+              WF_FILE="persistent-login-26-30.yml"
+              ;;
+            "Persistent Login (Contas 31-35)")
+              WF_FILE="persistent-login-31-35.yml"
+              ;;
+            "Persistent Login (Contas 36-40)")
+              WF_FILE="persistent-login-36-40.yml"
+              ;;
+            "Persistent Login (Contas 41-45)")
+              WF_FILE="persistent-login-41-45.yml"
+              ;;
+            "Persistent Login (Contas 46-50)")
+              WF_FILE="persistent-login-46-50.yml"
               ;;
             *)
               echo "Workflow não mapeado para reinício."
