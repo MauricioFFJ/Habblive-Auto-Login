@@ -1,4 +1,4 @@
-name: Persistent Login (Contas 1-10)
+name: Persistent Login (Contas 1-5)
 
 on:
   workflow_dispatch:
@@ -6,11 +6,11 @@ on:
     - cron: "0 */6 * * *" # Executa a cada 6 horas
 
 concurrency:
-  group: persistent-login-1-10
+  group: persistent-login-1-5
   cancel-in-progress: false # Evita execução simultânea; nova espera a anterior terminar
 
 jobs:
-  persistent-login-1-10:
+  persistent-login-1-5:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,7 +26,7 @@ jobs:
         run: |
           pip install selenium webdriver-manager colorama
 
-      - name: Executa login persistente (Contas 1-10)
+      - name: Executa login persistente (Contas 1-5)
         env:
           HABBLIVE_USERNAME_1: ${{ secrets.HABBLIVE_USERNAME_1 }}
           HABBLIVE_PASSWORD_1: ${{ secrets.HABBLIVE_PASSWORD_1 }}
@@ -38,16 +38,6 @@ jobs:
           HABBLIVE_PASSWORD_4: ${{ secrets.HABBLIVE_PASSWORD_4 }}
           HABBLIVE_USERNAME_5: ${{ secrets.HABBLIVE_USERNAME_5 }}
           HABBLIVE_PASSWORD_5: ${{ secrets.HABBLIVE_PASSWORD_5 }}
-          HABBLIVE_USERNAME_6: ${{ secrets.HABBLIVE_USERNAME_6 }}
-          HABBLIVE_PASSWORD_6: ${{ secrets.HABBLIVE_PASSWORD_6 }}
-          HABBLIVE_USERNAME_7: ${{ secrets.HABBLIVE_USERNAME_7 }}
-          HABBLIVE_PASSWORD_7: ${{ secrets.HABBLIVE_PASSWORD_7 }}
-          HABBLIVE_USERNAME_8: ${{ secrets.HABBLIVE_USERNAME_8 }}
-          HABBLIVE_PASSWORD_8: ${{ secrets.HABBLIVE_PASSWORD_8 }}
-          HABBLIVE_USERNAME_9: ${{ secrets.HABBLIVE_USERNAME_9 }}
-          HABBLIVE_PASSWORD_9: ${{ secrets.HABBLIVE_PASSWORD_9 }}
-          HABBLIVE_USERNAME_10: ${{ secrets.HABBLIVE_USERNAME_10 }}
-          HABBLIVE_PASSWORD_10: ${{ secrets.HABBLIVE_PASSWORD_10 }}
         run: python persistent_login.py
 
       - name: Auto-disparo para reinício imediato
@@ -57,5 +47,5 @@ jobs:
           curl -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/${{ github.repository }}/actions/workflows/persistent-login-1-10.yml/dispatches \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/persistent-login-1-5.yml/dispatches \
             -d '{"ref":"${{ github.ref_name }}"}'
