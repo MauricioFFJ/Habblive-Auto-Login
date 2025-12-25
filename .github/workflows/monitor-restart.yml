@@ -27,10 +27,10 @@ jobs:
 
           case "${{ github.event.workflow_run.name }}" in
             "Persistent Login (Contas 1-5)")
-              WF_FILE="persistent-login-1-5.yml"
+              WF_FILE="persistent-login-01-05.yml"
               ;;
             "Persistent Login (Contas 6-10)")
-              WF_FILE="persistent-login-6-10.yml"
+              WF_FILE="persistent-login-06-10.yml"
               ;;
             "Persistent Login (Contas 11-15)")
               WF_FILE="persistent-login-11-15.yml"
