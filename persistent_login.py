@@ -13,14 +13,12 @@ from colorama import Fore, Style, init
 
 # ===== CONFIGURAÇÃO =====
 URL_BIGCLIENT = "https://habblive.in/bigclient/"
-CHECK_INTERVAL = 30  # segundos entre verificações
+CHECK_INTERVAL = 15  # segundos entre verificações
 EXECUTAR_ACOES = False  # True = faz ações no quarto, False = só loga/reloga
-CALENDAR = True        # True = ativa rotina do calendário
-JOIN_GROUP = False      # True = ativa rotina de juntar-se ao grupo
 
 # Configurações personalizadas
 DONO_QUARTO = "OWNER NAME"         # Nome do dono a ser digitado no filtro
-NOME_QUARTO = "ROOM NAME"          # Nome exato (ou parte) do quarto a ser clicado
+NOME_QUARTO = "ROOM NAME"   # Nome exato (ou parte) do quarto a ser clicado
 # ========================
 
 init(autoreset=True)
@@ -96,6 +94,7 @@ def wait_type_css(driver, css, text, desc, timeout=30, clear_first=False, fire_i
     return elem
 
 def selecionar_opcao_dono(driver):
+    # Usa mudança direta de value + evento change para garantir
     select_css = "select.form-select.form-select-sm"
     wait = WebDriverWait(driver, 30)
     select_elem = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, select_css)))
@@ -109,6 +108,7 @@ def selecionar_opcao_dono(driver):
     return select_elem
 
 def clicar_quarto_por_nome(driver, nome, timeout=40):
+    # XPath que ignora maiúsculas/minúsculas (com acentos) e tenta exato; se não achar, tenta contains.
     mapa_maius = "ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÂÊÎÔÛÃÕÇ"
     mapa_minus = "abcdefghijklmnopqrstuvwxyzáéíóúâêîôûãõç"
     nome_lower = nome.lower()
@@ -128,57 +128,6 @@ def clicar_quarto_por_nome(driver, nome, timeout=40):
         log(f"Quarto exato não encontrado: {repr(e1)}. Tentando por 'contém'...", Fore.YELLOW)
         return wait_click_xpath(driver, xpath_contains, f"Quarto contendo '{nome}'", timeout=timeout, use_js=True)
 
-# ---------- NOVAS FUNÇÕES ----------
-
-def rotina_calendar(driver, index, start_time):
-    if not CALENDAR:
-        return
-    try:
-        elapsed = time.time() - start_time
-        if elapsed >= 35*60:  # 35 minutos
-            log(f"[Conta {index}] Executando rotina CALENDAR...", Fore.CYAN)
-            try:
-                wait_click_css(driver,
-                               ".cursor-pointer.navigation-item.icon.icon-calendar",
-                               "[Abrir Calendário]", timeout=30, use_js=True)
-                time.sleep(3)
-                elem = wait_click_css(driver,
-                               ".d-flex.cursor-pointer.flex-column.gap-2.align-items-center.justify-content-center.campaing-tree-actived",
-                               "[Campanha Ativa]", timeout=30, use_js=True)
-                # duplo clique
-                driver.execute_script("arguments[0].click(); arguments[0].click();", elem)
-                time.sleep(2)
-                wait_click_css(driver,
-                               ".d-flex.position-absolute.end-2.nitro-card-header-modern-slim-close",
-                               "[Fechar Calendário]", timeout=30, use_js=True)
-                log(f"[Conta {index}] Rotina CALENDAR concluída.", Fore.GREEN)
-                return True
-            except Exception as e:
-                log(f"[Conta {index}] ❌ Falha na rotina CALENDAR: {repr(e)}", Fore.RED)
-        else:
-            # ainda não passou 35 min
-            pass
-    except Exception as e:
-        log(f"[Conta {index}] Erro rotina CALENDAR: {repr(e)}", Fore.RED)
-
-def rotina_join_group(driver, index, start_time):
-    if not JOIN_GROUP:
-        return
-    try:
-        elapsed = time.time() - start_time
-        if elapsed >= 5*60:  # 5 minutos
-            log(f"[Conta {index}] Verificando botão 'Juntar-se ao Grupo'...", Fore.CYAN)
-            try:
-                btn = driver.find_element(By.XPATH,
-                    "//div[contains(@class,'btn-green') and contains(text(),'Juntar-se ao Grupo')]")
-                driver.execute_script("arguments[0].click();", btn)
-                log(f"[Conta {index}] ✅ Juntou-se ao grupo.", Fore.GREEN)
-                return True
-            except Exception:
-                log(f"[Conta {index}] Botão 'Juntar-se ao Grupo' não encontrado.", Fore.YELLOW)
-    except Exception as e:
-        log(f"[Conta {index}] Erro rotina JOIN_GROUP: {repr(e)}", Fore.RED)
-
 # ---------- Sequência de ações com retentativas ----------
 def executar_acoes_no_quarto(driver, index):
     for tentativa in range(1, 4):
@@ -186,35 +135,43 @@ def executar_acoes_no_quarto(driver, index):
             log(f"[Conta {index}] Iniciando sequência (tentativa {tentativa}/3). Aguardando 15s...", Fore.YELLOW)
             time.sleep(15)
 
+            # Abrir navegador de quartos
             wait_click_css(driver, ".cursor-pointer.navigation-item.icon.icon-rooms",
                            "[Navegador de Quartos]", timeout=30, use_js=True)
             time.sleep(4)
 
+            # Abrir o select e selecionar 'Dono'
             wait_click_css(driver, "select.form-select.form-select-sm",
                            "[Menu de filtro]", timeout=30, use_js=True)
             time.sleep(4)
             selecionar_opcao_dono(driver)
             time.sleep(4)
 
+            # Campo de filtro e texto do dono
             wait_type_css(driver,
                           "input.form-control.form-control-sm[placeholder='filtrar quartos por']",
                           DONO_QUARTO, "[Filtro de texto - dono]", timeout=30,
                           clear_first=True, fire_input=True)
             time.sleep(4)
 
+            # Clicar no botão buscar
             wait_click_css(driver,
                            ".d-flex.align-items-center.justify-content-center.btn.btn-primary.btn-sm",
                            "[Botão Buscar]", timeout=30, use_js=True)
             time.sleep(15)
 
+            # Clicar no quarto pelo nome
             clicar_quarto_por_nome(driver, NOME_QUARTO, timeout=45)
             log(f"[Conta {index}] Entrando no quarto '{NOME_QUARTO}'.", Fore.GREEN)
+
+            # Sequência concluída
             return
 
         except Exception as e:
             log(f"[Conta {index}] Falha na sequência (tentativa {tentativa}/3): {repr(e)}", Fore.RED)
             if tentativa < 3:
                 time.sleep(6)
+                # Pequeno refresh no navegador de quartos para estabilizar a UI
                 try:
                     wait_click_css(driver, ".cursor-pointer.navigation-item.icon.icon-rooms",
                                    "[Reabrir Navegador de Quartos]", timeout=15, use_js=True)
@@ -223,7 +180,6 @@ def executar_acoes_no_quarto(driver, index):
             else:
                 log(f"[Conta {index}] Sequência falhou após 3 tentativas. Vai seguir monitorando.", Fore.RED)
 
-# ---------- Função iniciar sessão ----------
 def iniciar_sessao(username, password, index):
     time.sleep(index * 3)  # evita colisão de logins
 
@@ -236,7 +192,7 @@ def iniciar_sessao(username, password, index):
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--incognito")
-        options.add_argument("--window-size=1366,768")
+        options.add_argument("--window-size=1366,768")  # importante para cliques em headless
 
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=options)
@@ -245,6 +201,24 @@ def iniciar_sessao(username, password, index):
             log(f"[Conta {index}] Iniciando login para {username}...", Fore.CYAN)
             driver.get("https://habblive.in/")
             wait = WebDriverWait(driver, 25)
+
+            # Fecha banner de cookies se aparecer
+            try:
+                cookie_banner = wait.until(
+                    EC.presence_of_element_located((By.ID, "cookie-law-container"))
+                )
+                try:
+                    accept_btn = cookie_banner.find_element(By.TAG_NAME, "button")
+                    driver.execute_script("arguments[0].click();", accept_btn)
+                    log(f"[Conta {index}] Banner de cookies fechado.", Fore.MAGENTA)
+                except Exception:
+                    driver.execute_script("""
+                        const el = document.getElementById('cookie-law-container');
+                        if (el) el.remove();
+                    """)
+                    log(f"[Conta {index}] Banner de cookies removido via script.", Fore.MAGENTA)
+            except Exception:
+                pass
 
             # Login
             wait.until(EC.presence_of_element_located((By.NAME, "username"))).send_keys(username)
@@ -259,15 +233,60 @@ def iniciar_sessao(username, password, index):
             with lock:
                 status_contas[index] = "✅ Online"
 
-            start_time = time.time()
-
+            # Ações pós-login
             if EXECUTAR_ACOES:
                 executar_acoes_no_quarto(driver, index)
 
-            # Monitoramento
+            # Monitoramento de sessão e reinícios
             while True:
-                rotina_calendar(driver, index, start_time)
-                rotina_join_group(driver, index, start_time)
+                current_url = driver.current_url
+
+                if current_url != URL_BIGCLIENT:
+                    # Verifica se o elemento principal do Big Client ainda está presente
+                    try:
+                        driver.find_element(By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
+                        # Elemento encontrado → jogo ainda aberto, ignora redirecionamento indireto
+                        pass
+                    except:
+                        # Elemento não encontrado → cliente realmente saiu
+                        log(f"[Conta {index}] ⚠️ Redirecionado para fora ({current_url}). Relogando...", Fore.YELLOW)
+                        driver.quit()
+                        time.sleep(2)
+                        break
+
+                try:
+                    driver.find_element(By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
+                except:
+                    log(f"[Conta {index}] ⚠️ Cliente reiniciou, aguardando recarregar...", Fore.YELLOW)
+                    try:
+                        WebDriverWait(driver, 90).until(
+                            EC.presence_of_element_located(
+                                (By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
+                            )
+                        )
+                        log(f"[Conta {index}] Cliente recarregado.", Fore.GREEN)
+                        if EXECUTAR_ACOES:
+                            executar_acoes_no_quarto(driver, index)
+                    except Exception as e:
+                        log(f"[Conta {index}] ❌ Cliente não recarregou a tempo: {repr(e)}", Fore.RED)
+
+                time.sleep(CHECK_INTERVAL)
+
+                # Detecta reinício do cliente (mesma URL, UI some e volta)
+                try:
+                    driver.find_element(By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms")
+                except Exception:
+                    log(f"[Conta {index}] ⚠️ Cliente reiniciou, aguardando recarregar...", Fore.YELLOW)
+                    try:
+                        WebDriverWait(driver, 90).until(
+                            EC.presence_of_element_located((By.CSS_SELECTOR, ".cursor-pointer.navigation-item.icon.icon-rooms"))
+                        )
+                        log(f"[Conta {index}] Cliente recarregado.", Fore.GREEN)
+                        if EXECUTAR_ACOES:
+                            executar_acoes_no_quarto(driver, index)
+                    except Exception as e:
+                        log(f"[Conta {index}] ❌ Cliente não recarregou a tempo: {repr(e)}", Fore.RED)
+
                 time.sleep(CHECK_INTERVAL)
 
         except Exception as e:
@@ -277,7 +296,7 @@ def iniciar_sessao(username, password, index):
             driver.quit()
             time.sleep(5)
 
-# ---------- Leitura das contas ----------
+# Lê todas as contas, mesmo com buracos
 accounts = []
 i = 1
 while i <= 100:
