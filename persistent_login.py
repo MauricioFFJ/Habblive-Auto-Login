@@ -14,7 +14,7 @@ from colorama import Fore, Style, init
 # ===== CONFIGURAÇÃO =====
 URL_BIGCLIENT = "https://habblive.in/bigclient/"
 CHECK_INTERVAL = 15  # segundos entre verificações
-EXECUTAR_ACOES = True  # True = faz ações no quarto, False = só loga/reloga
+EXECUTAR_ACOES = False  # True = faz ações no quarto, False = só loga/reloga
 
 # Configurações personalizadas
 DONO_QUARTO = "Mist"         # Nome do dono a ser digitado no filtro
