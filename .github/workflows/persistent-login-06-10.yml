@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false # Evita execução simultânea; nova espera a anterior terminar
 
 jobs:
-  persistent-login-06-10:
+  persistent-login-6-10:
     if: ${{ vars.HABILITAR_REINICIO == 'true' }}
     runs-on: ubuntu-latest
 
