@@ -11,7 +11,6 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from webdriver_manager.chrome import ChromeDriverManager
 from colorama import Fore, Style, init
 
 
@@ -58,60 +57,37 @@ def criar_driver():
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
+    options.add_argument("--disable-blink-features=AutomationControlled")
+
     options.add_argument("--disable-gpu")
-    options.add_argument("--disable-extensions")
 
     options.add_argument("--window-size=1366,768")
 
-    service = Service(ChromeDriverManager().install())
+    options.add_argument(
+        "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+    )
+
+    service = Service()
 
     driver = webdriver.Chrome(service=service, options=options)
+
+    driver.execute_script(
+        "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+    )
 
     driver.set_page_load_timeout(120)
 
     return driver
 
 
-def esperar_login(driver):
-
-    wait = WebDriverWait(driver, 60)
-
-    wait.until(
-        EC.presence_of_element_located((By.NAME, "username"))
-    )
-
-    wait.until(
-        EC.presence_of_element_located((By.NAME, "password"))
-    )
-
-
-def fechar_cookies(driver):
-
-    try:
-
-        cookie = driver.find_element(By.ID, "cookie-law-container")
-
-        btn = cookie.find_element(By.TAG_NAME, "button")
-
-        driver.execute_script("arguments[0].click();", btn)
-
-        log("Cookies aceitos", Fore.YELLOW)
-
-    except:
-        pass
-
-
 def fazer_login(driver, username, password, index):
 
-    log(f"[Conta {index}] Abrindo site", Fore.CYAN)
+    log(f"[Conta {index}] Abrindo site...", Fore.CYAN)
 
     driver.get(URL_HOME)
 
-    esperar_login(driver)
-
-    fechar_cookies(driver)
-
-    wait = WebDriverWait(driver, 60)
+    wait = WebDriverWait(driver, 120)
 
     user = wait.until(
         EC.presence_of_element_located((By.NAME, "username"))
@@ -139,7 +115,7 @@ def fazer_login(driver, username, password, index):
 
     driver.get(URL_BIGCLIENT)
 
-    log(f"[Conta {index}] Login concluído", Fore.GREEN)
+    log(f"[Conta {index}] Login concluído.", Fore.GREEN)
 
 
 def monitorar_client(driver, index):
@@ -155,10 +131,7 @@ def monitorar_client(driver, index):
 
         except:
 
-            log(
-                f"[Conta {index}] Cliente reiniciando...",
-                Fore.YELLOW
-            )
+            log(f"[Conta {index}] Cliente reiniciando...", Fore.YELLOW)
 
             try:
 
@@ -172,17 +145,11 @@ def monitorar_client(driver, index):
                     )
                 )
 
-                log(
-                    f"[Conta {index}] Cliente voltou",
-                    Fore.GREEN
-                )
+                log(f"[Conta {index}] Cliente voltou.", Fore.GREEN)
 
             except:
 
-                log(
-                    f"[Conta {index}] Cliente não voltou",
-                    Fore.RED
-                )
+                log(f"[Conta {index}] Cliente não voltou.", Fore.RED)
 
                 return
 
@@ -191,7 +158,7 @@ def monitorar_client(driver, index):
 
 def iniciar_conta(username, password, index):
 
-    time.sleep(index * 2)
+    time.sleep(index * 3)
 
     while True:
 
