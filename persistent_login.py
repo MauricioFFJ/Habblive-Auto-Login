@@ -3,15 +3,12 @@ import time
 import threading
 from datetime import datetime
 
-import requests
-from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 from colorama import Fore, Style, init
 
 init(autoreset=True)
 
-URL_HOME = "https://habblive.in/"
-URL_LOGIN = "https://habblive.in/login"
-URL_CLIENT = "https://habblive.in/bigclient/"
+URL = "https://habblive.in/"
 
 CHECK_INTERVAL = 30
 
@@ -40,104 +37,9 @@ def painel_status(total):
         time.sleep(5)
 
 
-def criar_sessao():
-
-    s = requests.Session()
-
-    s.headers.update({
-        "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-        "Accept":
-        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language":
-        "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Connection":
-        "keep-alive"
-    })
-
-    return s
-
-
-def obter_csrf(session):
-
-    # Primeiro visita a home (gera cookies)
-    session.get(URL_HOME, timeout=30)
-
-    r = session.get(URL_LOGIN, timeout=30)
-
-    soup = BeautifulSoup(r.text, "html.parser")
-
-    # tentativa 1: input hidden
-    token = soup.find("input", {"name": "_token"})
-    if token:
-        return token.get("value")
-
-    # tentativa 2: meta tag
-    token = soup.find("meta", {"name": "csrf-token"})
-    if token:
-        return token.get("content")
-
-    # tentativa 3: procurar no HTML
-    if "csrf" in r.text.lower():
-        import re
-        match = re.search(r'csrf_token["\']?\s*:\s*["\']([^"\']+)', r.text)
-        if match:
-            return match.group(1)
-
-    raise Exception("CSRF token não encontrado")
-
-
-def fazer_login(session, username, password, index):
-
-    log(f"[Conta {index}] Preparando login...", Fore.CYAN)
-
-    csrf = obter_csrf(session)
-
-    payload = {
-        "_token": csrf,
-        "username": username,
-        "password": password
-    }
-
-    log(f"[Conta {index}] Enviando login...", Fore.YELLOW)
-
-    r = session.post(URL_LOGIN, data=payload, timeout=30)
-
-    if r.status_code != 200:
-        raise Exception("Falha HTTP login")
-
-    if "logout" not in r.text.lower() and "dashboard" not in r.text.lower():
-        raise Exception("Login rejeitado")
-
-    log(f"[Conta {index}] Login confirmado!", Fore.GREEN)
-
-
-def manter_sessao(session, index):
-
-    while True:
-
-        try:
-
-            r = session.get(URL_CLIENT, timeout=30)
-
-            if r.status_code != 200:
-                raise Exception("Sessão inválida")
-
-            log(f"[Conta {index}] Sessão ativa.", Fore.GREEN)
-
-        except:
-
-            log(f"[Conta {index}] Sessão perdida.", Fore.RED)
-
-            return
-
-        time.sleep(CHECK_INTERVAL)
-
-
 def iniciar_conta(username, password, index):
 
-    time.sleep(index * 3)
+    time.sleep(index * 5)
 
     while True:
 
@@ -146,14 +48,51 @@ def iniciar_conta(username, password, index):
 
         try:
 
-            session = criar_sessao()
+            with sync_playwright() as p:
 
-            fazer_login(session, username, password, index)
+                browser = p.chromium.launch(
+                    headless=True,
+                    args=[
+                        "--no-sandbox",
+                        "--disable-dev-shm-usage"
+                    ]
+                )
 
-            with lock:
-                status_contas[index] = "✅"
+                context = browser.new_context()
 
-            manter_sessao(session, index)
+                page = context.new_page()
+
+                log(f"[Conta {index}] Abrindo site...", Fore.CYAN)
+
+                page.goto(URL, timeout=120000)
+
+                page.wait_for_timeout(5000)
+
+                log(f"[Conta {index}] Preenchendo login...", Fore.YELLOW)
+
+                page.fill('input[name="username"]', username)
+                page.fill('input[name="password"]', password)
+
+                page.click(".btn.big.green.login-button")
+
+                page.wait_for_timeout(8000)
+
+                if "login" in page.url.lower():
+                    raise Exception("Login não confirmado")
+
+                log(f"[Conta {index}] Login confirmado!", Fore.GREEN)
+
+                with lock:
+                    status_contas[index] = "✅"
+
+                while True:
+
+                    page.wait_for_timeout(CHECK_INTERVAL * 1000)
+
+                    if page.is_closed():
+                        raise Exception("Página fechada")
+
+                    log(f"[Conta {index}] Sessão ativa.", Fore.GREEN)
 
         except Exception as e:
 
