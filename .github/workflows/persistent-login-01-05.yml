@@ -20,29 +20,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Instalar Chrome
-        run: |
-          sudo apt update
-          sudo apt install -y wget unzip
-
-          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo apt install -y ./google-chrome-stable_current_amd64.deb
-
-      - name: Instalar ChromeDriver compatível
-        run: |
-          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
-          DRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE")
-
-          wget https://chromedriver.storage.googleapis.com/$DRIVER_VERSION/chromedriver_linux64.zip
-          unzip chromedriver_linux64.zip
-          sudo mv chromedriver /usr/bin/chromedriver
-          sudo chmod +x /usr/bin/chromedriver
-
-      - name: Verificar versões
-        run: |
-          google-chrome --version
-          chromedriver --version
-
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
@@ -51,7 +28,7 @@ jobs:
       - name: Instalar dependências
         run: |
           python -m pip install --upgrade pip
-          pip install selenium undetected-chromedriver colorama
+          pip install requests colorama
 
       - name: Executar login persistente (Contas 1-5)
         env:
