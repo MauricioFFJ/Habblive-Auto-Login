@@ -37,6 +37,18 @@ def painel_status(total):
         time.sleep(5)
 
 
+def encontrar_input(page, seletores):
+
+    for s in seletores:
+        try:
+            if page.locator(s).count() > 0:
+                return s
+        except:
+            pass
+
+    return None
+
+
 def iniciar_conta(username, password, index):
 
     time.sleep(index * 5)
@@ -59,7 +71,6 @@ def iniciar_conta(username, password, index):
                 )
 
                 context = browser.new_context()
-
                 page = context.new_page()
 
                 log(f"[Conta {index}] Abrindo site...", Fore.CYAN)
@@ -68,12 +79,32 @@ def iniciar_conta(username, password, index):
 
                 page.wait_for_timeout(5000)
 
-                log(f"[Conta {index}] Preenchendo login...", Fore.YELLOW)
+                log(f"[Conta {index}] Detectando campos de login...", Fore.YELLOW)
 
-                page.fill('input[name="username"]', username)
-                page.fill('input[name="password"]', password)
+                user_selector = encontrar_input(page, [
+                    'input[name="username"]',
+                    'input[name="login"]',
+                    'input[name="email"]',
+                    'input[id="username"]',
+                    'input[type="text"]'
+                ])
 
-                page.click(".btn.big.green.login-button")
+                pass_selector = encontrar_input(page, [
+                    'input[name="password"]',
+                    'input[id="password"]',
+                    'input[type="password"]'
+                ])
+
+                if not user_selector or not pass_selector:
+                    raise Exception("Campos de login não encontrados")
+
+                page.fill(user_selector, username)
+                page.fill(pass_selector, password)
+
+                log(f"[Conta {index}] Enviando login...", Fore.YELLOW)
+
+                btn = page.locator("button, input[type=submit]").first
+                btn.click()
 
                 page.wait_for_timeout(8000)
 
