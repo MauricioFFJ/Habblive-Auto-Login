@@ -1,3 +1,11 @@
+- name: Mostrar IP público do runner
+  run: |
+    echo "IP público:"
+    curl -s https://api.ipify.org
+    echo ""
+    echo "Detalhes do IP:"
+    curl -s https://ipinfo.io
+
 name: Persistent Login (Contas 1-5)
 
 on:
