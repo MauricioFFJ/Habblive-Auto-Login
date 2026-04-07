@@ -11,7 +11,6 @@ concurrency:
 
 jobs:
   persistent-login-1-5:
-    if: ${{ vars.HABILITAR_REINICIO == 'true' }}
     runs-on: ubuntu-latest
     
     steps:
