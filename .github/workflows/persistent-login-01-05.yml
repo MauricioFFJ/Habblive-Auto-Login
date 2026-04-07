@@ -26,6 +26,12 @@ jobs:
         run: |
           pip install selenium webdriver-manager colorama
 
+- name: Mostrar IP público do runner
+        run: |
+          echo "IP público do runner:"
+          curl -s https://api.ipify.org
+          echo ""
+
       - name: Executa login persistente (Contas 1-5)
         env:
           HABBLIVE_USERNAME_1: ${{ secrets.HABBLIVE_USERNAME_1 }}
