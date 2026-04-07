@@ -56,11 +56,8 @@ def criar_driver():
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-
     options.add_argument("--disable-blink-features=AutomationControlled")
-
     options.add_argument("--disable-gpu")
-
     options.add_argument("--window-size=1366,768")
 
     options.add_argument(
@@ -79,6 +76,18 @@ def criar_driver():
     driver.set_page_load_timeout(120)
 
     return driver
+
+
+def login_confirmado(driver):
+    """Verifica se realmente logou"""
+
+    cookies = driver.get_cookies()
+
+    for c in cookies:
+        if "session" in c["name"].lower():
+            return True
+
+    return False
 
 
 def fazer_login(driver, username, password, index):
@@ -111,11 +120,16 @@ def fazer_login(driver, username, password, index):
 
     driver.execute_script("arguments[0].click();", btn)
 
-    time.sleep(5)
+    log(f"[Conta {index}] Enviando login...", Fore.YELLOW)
+
+    time.sleep(8)
+
+    if not login_confirmado(driver):
+        raise Exception("Login não confirmado pelo site")
+
+    log(f"[Conta {index}] Login confirmado!", Fore.GREEN)
 
     driver.get(URL_BIGCLIENT)
-
-    log(f"[Conta {index}] Login concluído.", Fore.GREEN)
 
 
 def monitorar_client(driver, index):
