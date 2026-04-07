@@ -26,18 +26,10 @@ status_contas = {}
 lock = threading.Lock()
 
 
-# ===============================
-# LOG
-# ===============================
-
 def log(msg, color=Fore.WHITE):
     timestamp = datetime.now().strftime("%H:%M:%S")
     print(f"{color}[{timestamp}] {msg}{Style.RESET_ALL}")
 
-
-# ===============================
-# PAINEL
-# ===============================
 
 def painel_status(total):
 
@@ -58,10 +50,6 @@ def painel_status(total):
         time.sleep(5)
 
 
-# ===============================
-# DRIVER
-# ===============================
-
 def criar_driver():
 
     options = Options()
@@ -72,9 +60,6 @@ def criar_driver():
 
     options.add_argument("--disable-gpu")
     options.add_argument("--disable-extensions")
-    options.add_argument("--disable-notifications")
-
-    options.add_argument("--disable-infobars")
 
     options.add_argument("--window-size=1366,768")
 
@@ -83,55 +68,79 @@ def criar_driver():
     driver = webdriver.Chrome(service=service, options=options)
 
     driver.set_page_load_timeout(120)
-    driver.set_script_timeout(120)
 
     return driver
 
 
-# ===============================
-# LOGIN
-# ===============================
-
-def fazer_login(driver, username, password, index):
+def esperar_login(driver):
 
     wait = WebDriverWait(driver, 60)
 
-    log(f"[Conta {index}] Abrindo site...", Fore.CYAN)
+    wait.until(
+        EC.presence_of_element_located((By.NAME, "username"))
+    )
 
-    driver.get(URL_HOME)
+    wait.until(
+        EC.presence_of_element_located((By.NAME, "password"))
+    )
+
+
+def fechar_cookies(driver):
 
     try:
 
-        wait.until(
-            EC.presence_of_element_located((By.NAME, "username"))
-        ).send_keys(username)
+        cookie = driver.find_element(By.ID, "cookie-law-container")
 
-        wait.until(
-            EC.presence_of_element_located((By.NAME, "password"))
-        ).send_keys(password)
-
-        btn = wait.until(
-            EC.element_to_be_clickable(
-                (By.CSS_SELECTOR, ".btn.big.green.login-button")
-            )
-        )
+        btn = cookie.find_element(By.TAG_NAME, "button")
 
         driver.execute_script("arguments[0].click();", btn)
 
-    except Exception as e:
+        log("Cookies aceitos", Fore.YELLOW)
 
-        raise Exception(f"Erro no login: {e}")
+    except:
+        pass
+
+
+def fazer_login(driver, username, password, index):
+
+    log(f"[Conta {index}] Abrindo site", Fore.CYAN)
+
+    driver.get(URL_HOME)
+
+    esperar_login(driver)
+
+    fechar_cookies(driver)
+
+    wait = WebDriverWait(driver, 60)
+
+    user = wait.until(
+        EC.presence_of_element_located((By.NAME, "username"))
+    )
+
+    pwd = wait.until(
+        EC.presence_of_element_located((By.NAME, "password"))
+    )
+
+    user.clear()
+    pwd.clear()
+
+    user.send_keys(username)
+    pwd.send_keys(password)
+
+    btn = wait.until(
+        EC.element_to_be_clickable(
+            (By.CSS_SELECTOR, ".btn.big.green.login-button")
+        )
+    )
+
+    driver.execute_script("arguments[0].click();", btn)
 
     time.sleep(5)
 
     driver.get(URL_BIGCLIENT)
 
-    log(f"[Conta {index}] Online no client.", Fore.GREEN)
+    log(f"[Conta {index}] Login concluído", Fore.GREEN)
 
-
-# ===============================
-# MONITOR CLIENT
-# ===============================
 
 def monitorar_client(driver, index):
 
@@ -164,14 +173,14 @@ def monitorar_client(driver, index):
                 )
 
                 log(
-                    f"[Conta {index}] Cliente voltou.",
+                    f"[Conta {index}] Cliente voltou",
                     Fore.GREEN
                 )
 
             except:
 
                 log(
-                    f"[Conta {index}] Cliente não voltou.",
+                    f"[Conta {index}] Cliente não voltou",
                     Fore.RED
                 )
 
@@ -179,10 +188,6 @@ def monitorar_client(driver, index):
 
         time.sleep(CHECK_INTERVAL)
 
-
-# ===============================
-# THREAD DE CONTA
-# ===============================
 
 def iniciar_conta(username, password, index):
 
@@ -227,10 +232,6 @@ def iniciar_conta(username, password, index):
         time.sleep(5)
 
 
-# ===============================
-# CARREGAR CONTAS
-# ===============================
-
 accounts = []
 
 for i in range(1, 101):
@@ -246,20 +247,11 @@ if not accounts:
     raise ValueError("Nenhuma conta encontrada.")
 
 
-# ===============================
-# STATUS INICIAL
-# ===============================
-
 with lock:
 
     for i in range(1, len(accounts) + 1):
-
         status_contas[i] = "⏳"
 
-
-# ===============================
-# PAINEL THREAD
-# ===============================
 
 painel = threading.Thread(
     target=painel_status,
@@ -269,10 +261,6 @@ painel = threading.Thread(
 
 painel.start()
 
-
-# ===============================
-# THREADS DAS CONTAS
-# ===============================
 
 threads = []
 
