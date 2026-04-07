@@ -22,6 +22,9 @@ init(autoreset=True)
 status_contas = {}
 lock = threading.Lock()
 
+# Limita Chrome simultâneo (evita crash no GitHub runner)
+chrome_semaphore = threading.Semaphore(2)
+
 
 def log(msg, color=Fore.WHITE):
     timestamp = datetime.now().strftime("%H:%M:%S")
@@ -57,6 +60,14 @@ def criar_driver():
 
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1366,768")
+
+    options.add_argument("--disable-extensions")
+    options.add_argument("--disable-background-networking")
+    options.add_argument("--disable-sync")
+    options.add_argument("--metrics-recording-only")
+    options.add_argument("--disable-default-apps")
+    options.add_argument("--no-first-run")
+    options.add_argument("--disable-infobars")
 
     options.add_argument(
         "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -175,7 +186,8 @@ def iniciar_conta(username, password, index):
 
         try:
 
-            driver = criar_driver()
+            with chrome_semaphore:
+                driver = criar_driver()
 
             fazer_login(driver, username, password, index)
 
