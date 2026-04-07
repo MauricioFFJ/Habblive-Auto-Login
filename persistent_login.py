@@ -3,7 +3,9 @@ import time
 import threading
 from datetime import datetime
 
-import undetected_chromedriver as uc
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -11,25 +13,19 @@ from selenium.webdriver.support import expected_conditions as EC
 
 from colorama import Fore, Style, init
 
+init(autoreset=True)
 
 URL_HOME = "https://habblive.in/"
 URL_BIGCLIENT = "https://habblive.in/bigclient/"
 
-CHECK_INTERVAL = 15
-
-init(autoreset=True)
+CHECK_INTERVAL = 20
 
 status_contas = {}
 lock = threading.Lock()
 
-# Apenas 1 Chrome ativo por vez (estável no GitHub Actions)
-chrome_pool = threading.Semaphore(1)
-
-
 def log(msg, color=Fore.WHITE):
     timestamp = datetime.now().strftime("%H:%M:%S")
     print(f"{color}[{timestamp}] {msg}{Style.RESET_ALL}")
-
 
 def painel_status(total):
 
@@ -40,9 +36,7 @@ def painel_status(total):
             linha = []
 
             for i in range(1, total + 1):
-
                 estado = status_contas.get(i, "⏳")
-
                 linha.append(f"[{i}:{estado}]")
 
             log(" ".join(linha), Fore.BLUE)
@@ -52,29 +46,31 @@ def painel_status(total):
 
 def criar_driver():
 
-    options = uc.ChromeOptions()
+    chrome_options = Options()
 
-    options.binary_location = "/usr/bin/google-chrome"
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
 
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--window-size=1366,768")
 
-    options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1366,768")
+    chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument("--disable-background-networking")
+    chrome_options.add_argument("--disable-sync")
 
-    options.add_argument("--disable-extensions")
-    options.add_argument("--disable-sync")
-    options.add_argument("--no-first-run")
+    chrome_options.add_argument("--disable-infobars")
+    chrome_options.add_argument("--disable-notifications")
 
-    options.add_argument(
-        "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+    chrome_options.add_argument(
+        "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
     )
 
-    driver = uc.Chrome(
-        options=options,
-        use_subprocess=True
+    service = Service("/usr/bin/chromedriver")
+
+    driver = webdriver.Chrome(
+        service=service,
+        options=chrome_options
     )
 
     driver.set_page_load_timeout(120)
@@ -87,7 +83,6 @@ def login_confirmado(driver):
     cookies = driver.get_cookies()
 
     for c in cookies:
-
         if "session" in c["name"].lower():
             return True
 
@@ -122,21 +117,21 @@ def fazer_login(driver, username, password, index):
         )
     )
 
-    driver.execute_script("arguments[0].click();", btn)
+    btn.click()
 
     log(f"[Conta {index}] Enviando login...", Fore.YELLOW)
 
-    time.sleep(8)
+    time.sleep(10)
 
     if not login_confirmado(driver):
-        raise Exception("Login não confirmado pelo site")
+        raise Exception("Login não confirmado")
 
     log(f"[Conta {index}] Login confirmado!", Fore.GREEN)
 
     driver.get(URL_BIGCLIENT)
 
 
-def monitorar_client(driver, index):
+def monitorar_cliente(driver, index):
 
     while True:
 
@@ -164,11 +159,11 @@ def monitorar_client(driver, index):
                     )
                 )
 
-                log(f"[Conta {index}] Cliente voltou.", Fore.GREEN)
+                log(f"[Conta {index}] Cliente reconectado.", Fore.GREEN)
 
             except:
 
-                log(f"[Conta {index}] Cliente não voltou.", Fore.RED)
+                log(f"[Conta {index}] Falha ao reconectar.", Fore.RED)
 
                 return
 
@@ -177,8 +172,7 @@ def monitorar_client(driver, index):
 
 def iniciar_conta(username, password, index):
 
-    # atraso progressivo evita crash no runner
-    time.sleep(index * 8)
+    time.sleep(index * 10)
 
     while True:
 
@@ -189,16 +183,14 @@ def iniciar_conta(username, password, index):
 
         try:
 
-            with chrome_pool:
+            driver = criar_driver()
 
-                driver = criar_driver()
+            fazer_login(driver, username, password, index)
 
-                fazer_login(driver, username, password, index)
+            with lock:
+                status_contas[index] = "✅"
 
-                with lock:
-                    status_contas[index] = "✅"
-
-                monitorar_client(driver, index)
+            monitorar_cliente(driver, index)
 
         except Exception as e:
 
@@ -210,15 +202,14 @@ def iniciar_conta(username, password, index):
         finally:
 
             if driver:
-
                 try:
                     driver.quit()
                 except:
                     pass
 
-        log(f"[Conta {index}] Relogando em 15s...", Fore.YELLOW)
+        log(f"[Conta {index}] Relogando em 20s...", Fore.YELLOW)
 
-        time.sleep(15)
+        time.sleep(20)
 
 
 accounts = []
@@ -233,7 +224,7 @@ for i in range(1, 101):
 
 
 if not accounts:
-    raise ValueError("Nenhuma conta encontrada.")
+    raise Exception("Nenhuma conta configurada")
 
 
 with lock:
@@ -250,7 +241,6 @@ painel = threading.Thread(
 
 painel.start()
 
-
 threads = []
 
 for idx, (username, password) in enumerate(accounts, start=1):
@@ -263,7 +253,6 @@ for idx, (username, password) in enumerate(accounts, start=1):
     t.start()
 
     threads.append(t)
-
 
 for t in threads:
     t.join()
