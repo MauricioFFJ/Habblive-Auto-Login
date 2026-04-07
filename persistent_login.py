@@ -29,7 +29,6 @@ def painel_status(total):
     while True:
 
         with lock:
-
             linha = []
 
             for i in range(1, total + 1):
@@ -47,9 +46,12 @@ def criar_sessao():
 
     s.headers.update({
         "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0 Safari/537.36",
         "Accept":
-        "text/html,application/xhtml+xml",
+        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language":
+        "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
         "Connection":
         "keep-alive"
     })
@@ -59,16 +61,31 @@ def criar_sessao():
 
 def obter_csrf(session):
 
+    # Primeiro visita a home (gera cookies)
+    session.get(URL_HOME, timeout=30)
+
     r = session.get(URL_LOGIN, timeout=30)
 
     soup = BeautifulSoup(r.text, "html.parser")
 
+    # tentativa 1: input hidden
     token = soup.find("input", {"name": "_token"})
+    if token:
+        return token.get("value")
 
-    if not token:
-        raise Exception("CSRF token não encontrado")
+    # tentativa 2: meta tag
+    token = soup.find("meta", {"name": "csrf-token"})
+    if token:
+        return token.get("content")
 
-    return token["value"]
+    # tentativa 3: procurar no HTML
+    if "csrf" in r.text.lower():
+        import re
+        match = re.search(r'csrf_token["\']?\s*:\s*["\']([^"\']+)', r.text)
+        if match:
+            return match.group(1)
+
+    raise Exception("CSRF token não encontrado")
 
 
 def fazer_login(session, username, password, index):
@@ -87,7 +104,10 @@ def fazer_login(session, username, password, index):
 
     r = session.post(URL_LOGIN, data=payload, timeout=30)
 
-    if "logout" not in r.text.lower():
+    if r.status_code != 200:
+        raise Exception("Falha HTTP login")
+
+    if "logout" not in r.text.lower() and "dashboard" not in r.text.lower():
         raise Exception("Login rejeitado")
 
     log(f"[Conta {index}] Login confirmado!", Fore.GREEN)
@@ -163,7 +183,6 @@ if not accounts:
 
 
 with lock:
-
     for i in range(1, len(accounts) + 1):
         status_contas[i] = "⏳"
 
@@ -175,7 +194,6 @@ painel = threading.Thread(
 )
 
 painel.start()
-
 
 threads = []
 
@@ -189,7 +207,6 @@ for idx, (username, password) in enumerate(accounts, start=1):
     t.start()
 
     threads.append(t)
-
 
 for t in threads:
     t.join()
