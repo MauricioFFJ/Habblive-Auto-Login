@@ -4,13 +4,14 @@ import threading
 from datetime import datetime
 
 import requests
+from bs4 import BeautifulSoup
 from colorama import Fore, Style, init
 
 init(autoreset=True)
 
-LOGIN_URL = "https://habblive.in/api/login"
-CLIENT_URL = "https://habblive.in/bigclient/"
-PING_URL = "https://habblive.in/api/me"
+URL_HOME = "https://habblive.in/"
+URL_LOGIN = "https://habblive.in/login"
+URL_CLIENT = "https://habblive.in/bigclient/"
 
 CHECK_INTERVAL = 30
 
@@ -42,73 +43,74 @@ def painel_status(total):
 
 def criar_sessao():
 
-    session = requests.Session()
+    s = requests.Session()
 
-    session.headers.update({
-
+    s.headers.update({
         "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
         "Accept":
-        "application/json, text/plain, */*",
-
-        "Content-Type":
-        "application/json"
-
+        "text/html,application/xhtml+xml",
+        "Connection":
+        "keep-alive"
     })
 
-    return session
+    return s
+
+
+def obter_csrf(session):
+
+    r = session.get(URL_LOGIN, timeout=30)
+
+    soup = BeautifulSoup(r.text, "html.parser")
+
+    token = soup.find("input", {"name": "_token"})
+
+    if not token:
+        raise Exception("CSRF token não encontrado")
+
+    return token["value"]
 
 
 def fazer_login(session, username, password, index):
 
-    log(f"[Conta {index}] Enviando login...", Fore.YELLOW)
+    log(f"[Conta {index}] Preparando login...", Fore.CYAN)
+
+    csrf = obter_csrf(session)
 
     payload = {
-
+        "_token": csrf,
         "username": username,
         "password": password
-
     }
 
-    r = session.post(LOGIN_URL, json=payload, timeout=30)
+    log(f"[Conta {index}] Enviando login...", Fore.YELLOW)
 
-    if r.status_code != 200:
-        raise Exception("Falha HTTP login")
+    r = session.post(URL_LOGIN, data=payload, timeout=30)
 
-    data = r.json()
-
-    if not data.get("success"):
+    if "logout" not in r.text.lower():
         raise Exception("Login rejeitado")
 
     log(f"[Conta {index}] Login confirmado!", Fore.GREEN)
 
 
-def verificar_sessao(session):
-
-    try:
-
-        r = session.get(PING_URL, timeout=20)
-
-        return r.status_code == 200
-
-    except:
-        return False
-
-
-def manter_cliente(session, index):
+def manter_sessao(session, index):
 
     while True:
 
-        ok = verificar_sessao(session)
+        try:
 
-        if not ok:
+            r = session.get(URL_CLIENT, timeout=30)
+
+            if r.status_code != 200:
+                raise Exception("Sessão inválida")
+
+            log(f"[Conta {index}] Sessão ativa.", Fore.GREEN)
+
+        except:
 
             log(f"[Conta {index}] Sessão perdida.", Fore.RED)
 
             return
-
-        log(f"[Conta {index}] Sessão ativa.", Fore.GREEN)
 
         time.sleep(CHECK_INTERVAL)
 
@@ -122,8 +124,6 @@ def iniciar_conta(username, password, index):
         with lock:
             status_contas[index] = "🔄"
 
-        session = None
-
         try:
 
             session = criar_sessao()
@@ -133,7 +133,7 @@ def iniciar_conta(username, password, index):
             with lock:
                 status_contas[index] = "✅"
 
-            manter_cliente(session, index)
+            manter_sessao(session, index)
 
         except Exception as e:
 
