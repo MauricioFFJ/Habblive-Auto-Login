@@ -28,9 +28,13 @@ jobs:
       - name: Instalar dependências
         run: |
           python -m pip install --upgrade pip
-          pip install requests beautifulsoup4 colorama
+          pip install playwright colorama
 
-      - name: Executar login persistente (Contas 1-5)
+      - name: Instalar navegadores Playwright
+        run: |
+          playwright install chromium
+
+      - name: Executar login persistente
         env:
           HABBLIVE_USERNAME_1: ${{ secrets.HABBLIVE_USERNAME_1 }}
           HABBLIVE_PASSWORD_1: ${{ secrets.HABBLIVE_PASSWORD_1 }}
@@ -48,13 +52,3 @@ jobs:
           HABBLIVE_PASSWORD_5: ${{ secrets.HABBLIVE_PASSWORD_5 }}
 
         run: python persistent_login.py
-
-      - name: Auto reiniciar workflow
-        if: ${{ vars.HABILITAR_REINICIO == 'true' }}
-        run: |
-          echo "Reiniciando workflow..."
-          curl -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/${{ github.repository }}/actions/workflows/persistent-login-01-05.yml/dispatches \
-            -d "{\"ref\":\"${{ github.ref_name }}\"}"
