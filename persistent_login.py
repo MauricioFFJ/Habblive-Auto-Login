@@ -22,8 +22,8 @@ init(autoreset=True)
 status_contas = {}
 lock = threading.Lock()
 
-# Limita Chrome simultâneo (evita crash no GitHub runner)
-chrome_semaphore = threading.Semaphore(2)
+# Apenas 1 Chrome ativo por vez (estável no GitHub Actions)
+chrome_pool = threading.Semaphore(1)
 
 
 def log(msg, color=Fore.WHITE):
@@ -54,7 +54,9 @@ def criar_driver():
 
     options = uc.ChromeOptions()
 
-    options.add_argument("--headless=new")
+    options.binary_location = "/usr/bin/google-chrome"
+
+    options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
@@ -62,19 +64,18 @@ def criar_driver():
     options.add_argument("--window-size=1366,768")
 
     options.add_argument("--disable-extensions")
-    options.add_argument("--disable-background-networking")
     options.add_argument("--disable-sync")
-    options.add_argument("--metrics-recording-only")
-    options.add_argument("--disable-default-apps")
     options.add_argument("--no-first-run")
-    options.add_argument("--disable-infobars")
 
     options.add_argument(
         "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
     )
 
-    driver = uc.Chrome(options=options)
+    driver = uc.Chrome(
+        options=options,
+        use_subprocess=True
+    )
 
     driver.set_page_load_timeout(120)
 
@@ -86,6 +87,7 @@ def login_confirmado(driver):
     cookies = driver.get_cookies()
 
     for c in cookies:
+
         if "session" in c["name"].lower():
             return True
 
@@ -124,7 +126,7 @@ def fazer_login(driver, username, password, index):
 
     log(f"[Conta {index}] Enviando login...", Fore.YELLOW)
 
-    time.sleep(10)
+    time.sleep(8)
 
     if not login_confirmado(driver):
         raise Exception("Login não confirmado pelo site")
@@ -175,7 +177,8 @@ def monitorar_client(driver, index):
 
 def iniciar_conta(username, password, index):
 
-    time.sleep(index * 5)
+    # atraso progressivo evita crash no runner
+    time.sleep(index * 8)
 
     while True:
 
@@ -186,15 +189,16 @@ def iniciar_conta(username, password, index):
 
         try:
 
-            with chrome_semaphore:
+            with chrome_pool:
+
                 driver = criar_driver()
 
-            fazer_login(driver, username, password, index)
+                fazer_login(driver, username, password, index)
 
-            with lock:
-                status_contas[index] = "✅"
+                with lock:
+                    status_contas[index] = "✅"
 
-            monitorar_client(driver, index)
+                monitorar_client(driver, index)
 
         except Exception as e:
 
@@ -212,9 +216,9 @@ def iniciar_conta(username, password, index):
                 except:
                     pass
 
-        log(f"[Conta {index}] Relogando em 10s...", Fore.YELLOW)
+        log(f"[Conta {index}] Relogando em 15s...", Fore.YELLOW)
 
-        time.sleep(10)
+        time.sleep(15)
 
 
 accounts = []
