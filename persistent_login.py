@@ -3,29 +3,25 @@ import time
 import threading
 from datetime import datetime
 
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
+import requests
 from colorama import Fore, Style, init
 
 init(autoreset=True)
 
-URL_HOME = "https://habblive.in/"
-URL_BIGCLIENT = "https://habblive.in/bigclient/"
+LOGIN_URL = "https://habblive.in/api/login"
+CLIENT_URL = "https://habblive.in/bigclient/"
+PING_URL = "https://habblive.in/api/me"
 
-CHECK_INTERVAL = 20
+CHECK_INTERVAL = 30
 
 status_contas = {}
 lock = threading.Lock()
 
+
 def log(msg, color=Fore.WHITE):
     timestamp = datetime.now().strftime("%H:%M:%S")
     print(f"{color}[{timestamp}] {msg}{Style.RESET_ALL}")
+
 
 def painel_status(total):
 
@@ -44,153 +40,100 @@ def painel_status(total):
         time.sleep(5)
 
 
-def criar_driver():
+def criar_sessao():
 
-    chrome_options = Options()
+    session = requests.Session()
 
-    chrome_options.add_argument("--headless=new")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
+    session.headers.update({
 
-    chrome_options.add_argument("--window-size=1366,768")
+        "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
 
-    chrome_options.add_argument("--disable-extensions")
-    chrome_options.add_argument("--disable-background-networking")
-    chrome_options.add_argument("--disable-sync")
+        "Accept":
+        "application/json, text/plain, */*",
 
-    chrome_options.add_argument("--disable-infobars")
-    chrome_options.add_argument("--disable-notifications")
+        "Content-Type":
+        "application/json"
 
-    chrome_options.add_argument(
-        "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-    )
+    })
 
-    service = Service("/usr/bin/chromedriver")
-
-    driver = webdriver.Chrome(
-        service=service,
-        options=chrome_options
-    )
-
-    driver.set_page_load_timeout(120)
-
-    return driver
+    return session
 
 
-def login_confirmado(driver):
-
-    cookies = driver.get_cookies()
-
-    for c in cookies:
-        if "session" in c["name"].lower():
-            return True
-
-    return False
-
-
-def fazer_login(driver, username, password, index):
-
-    log(f"[Conta {index}] Abrindo site...", Fore.CYAN)
-
-    driver.get(URL_HOME)
-
-    wait = WebDriverWait(driver, 120)
-
-    user = wait.until(
-        EC.presence_of_element_located((By.NAME, "username"))
-    )
-
-    pwd = wait.until(
-        EC.presence_of_element_located((By.NAME, "password"))
-    )
-
-    user.clear()
-    pwd.clear()
-
-    user.send_keys(username)
-    pwd.send_keys(password)
-
-    btn = wait.until(
-        EC.element_to_be_clickable(
-            (By.CSS_SELECTOR, ".btn.big.green.login-button")
-        )
-    )
-
-    btn.click()
+def fazer_login(session, username, password, index):
 
     log(f"[Conta {index}] Enviando login...", Fore.YELLOW)
 
-    time.sleep(10)
+    payload = {
 
-    if not login_confirmado(driver):
-        raise Exception("Login não confirmado")
+        "username": username,
+        "password": password
+
+    }
+
+    r = session.post(LOGIN_URL, json=payload, timeout=30)
+
+    if r.status_code != 200:
+        raise Exception("Falha HTTP login")
+
+    data = r.json()
+
+    if not data.get("success"):
+        raise Exception("Login rejeitado")
 
     log(f"[Conta {index}] Login confirmado!", Fore.GREEN)
 
-    driver.get(URL_BIGCLIENT)
+
+def verificar_sessao(session):
+
+    try:
+
+        r = session.get(PING_URL, timeout=20)
+
+        return r.status_code == 200
+
+    except:
+        return False
 
 
-def monitorar_cliente(driver, index):
+def manter_cliente(session, index):
 
     while True:
 
-        try:
+        ok = verificar_sessao(session)
 
-            driver.find_element(
-                By.CSS_SELECTOR,
-                ".cursor-pointer.navigation-item.icon.icon-rooms"
-            )
+        if not ok:
 
-        except:
+            log(f"[Conta {index}] Sessão perdida.", Fore.RED)
 
-            log(f"[Conta {index}] Cliente caiu. Reconectando...", Fore.YELLOW)
+            return
 
-            try:
-
-                driver.get(URL_BIGCLIENT)
-
-                WebDriverWait(driver, 60).until(
-                    EC.presence_of_element_located(
-                        (
-                            By.CSS_SELECTOR,
-                            ".cursor-pointer.navigation-item.icon.icon-rooms"
-                        )
-                    )
-                )
-
-                log(f"[Conta {index}] Cliente reconectado.", Fore.GREEN)
-
-            except:
-
-                log(f"[Conta {index}] Falha ao reconectar.", Fore.RED)
-
-                return
+        log(f"[Conta {index}] Sessão ativa.", Fore.GREEN)
 
         time.sleep(CHECK_INTERVAL)
 
 
 def iniciar_conta(username, password, index):
 
-    time.sleep(index * 10)
+    time.sleep(index * 3)
 
     while True:
 
         with lock:
             status_contas[index] = "🔄"
 
-        driver = None
+        session = None
 
         try:
 
-            driver = criar_driver()
+            session = criar_sessao()
 
-            fazer_login(driver, username, password, index)
+            fazer_login(session, username, password, index)
 
             with lock:
                 status_contas[index] = "✅"
 
-            monitorar_cliente(driver, index)
+            manter_cliente(session, index)
 
         except Exception as e:
 
@@ -198,14 +141,6 @@ def iniciar_conta(username, password, index):
 
             with lock:
                 status_contas[index] = "❌"
-
-        finally:
-
-            if driver:
-                try:
-                    driver.quit()
-                except:
-                    pass
 
         log(f"[Conta {index}] Relogando em 20s...", Fore.YELLOW)
 
@@ -241,6 +176,7 @@ painel = threading.Thread(
 
 painel.start()
 
+
 threads = []
 
 for idx, (username, password) in enumerate(accounts, start=1):
@@ -253,6 +189,7 @@ for idx, (username, password) in enumerate(accounts, start=1):
     t.start()
 
     threads.append(t)
+
 
 for t in threads:
     t.join()
