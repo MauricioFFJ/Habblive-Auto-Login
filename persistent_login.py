@@ -3,11 +3,9 @@ import time
 import threading
 from datetime import datetime
 
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
+import undetected_chromedriver as uc
 
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -51,27 +49,21 @@ def painel_status(total):
 
 def criar_driver():
 
-    options = Options()
+    options = uc.ChromeOptions()
 
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-blink-features=AutomationControlled")
+
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1366,768")
 
     options.add_argument(
-        "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+        "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
     )
 
-    service = Service()
-
-    driver = webdriver.Chrome(service=service, options=options)
-
-    driver.execute_script(
-        "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
-    )
+    driver = uc.Chrome(options=options)
 
     driver.set_page_load_timeout(120)
 
@@ -79,7 +71,6 @@ def criar_driver():
 
 
 def login_confirmado(driver):
-    """Verifica se realmente logou"""
 
     cookies = driver.get_cookies()
 
@@ -122,7 +113,7 @@ def fazer_login(driver, username, password, index):
 
     log(f"[Conta {index}] Enviando login...", Fore.YELLOW)
 
-    time.sleep(8)
+    time.sleep(10)
 
     if not login_confirmado(driver):
         raise Exception("Login não confirmado pelo site")
@@ -145,12 +136,13 @@ def monitorar_client(driver, index):
 
         except:
 
-            log(f"[Conta {index}] Cliente reiniciando...", Fore.YELLOW)
+            log(f"[Conta {index}] Cliente caiu. Reconectando...", Fore.YELLOW)
 
             try:
 
-                WebDriverWait(driver, 90).until(
+                driver.get(URL_BIGCLIENT)
 
+                WebDriverWait(driver, 60).until(
                     EC.presence_of_element_located(
                         (
                             By.CSS_SELECTOR,
@@ -172,7 +164,7 @@ def monitorar_client(driver, index):
 
 def iniciar_conta(username, password, index):
 
-    time.sleep(index * 3)
+    time.sleep(index * 5)
 
     while True:
 
@@ -208,9 +200,9 @@ def iniciar_conta(username, password, index):
                 except:
                     pass
 
-        log(f"[Conta {index}] Relogando em 5s...", Fore.YELLOW)
+        log(f"[Conta {index}] Relogando em 10s...", Fore.YELLOW)
 
-        time.sleep(5)
+        time.sleep(10)
 
 
 accounts = []
