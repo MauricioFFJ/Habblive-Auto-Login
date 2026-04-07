@@ -26,7 +26,7 @@ jobs:
         run: |
           pip install selenium webdriver-manager colorama
 
-- name: Mostrar IP público do runner
+      - name: Mostrar IP público do runner
         run: |
           echo "IP público do runner:"
           curl -s https://api.ipify.org
