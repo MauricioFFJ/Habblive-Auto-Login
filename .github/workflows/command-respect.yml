@@ -1,4 +1,4 @@
-name: 🤝 Comando - Respeitar
+name: Command - Respeitar
 
 on:
   workflow_dispatch:
@@ -7,10 +7,9 @@ on:
         description: "Nome do usuário"
         required: true
         type: string
-
       targets:
-        description: "Contas: all ou números separados por vírgula"
-        required: true
+        description: "Contas alvo (ex: all ou 1,2,3)"
+        required: false
         default: "all"
         type: string
 
@@ -22,57 +21,77 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Criar comando
-        env:
-          USERNAME: ${{ inputs.username }}
-          TARGETS: ${{ inputs.targets }}
-        run: |
-          mkdir -p commands
+      # IMPORTANTE:
+      # O checkout precisa acontecer ANTES de qualquer comando git.
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-          python - <<'PY'
-          import json
-          import os
-          import time
-
-          command_id = str(time.time_ns())
-
-          targets = os.environ["TARGETS"].strip()
-
-          if targets.lower() == "all":
-              targets_value = "all"
-          else:
-              targets_value = [
-                  int(x.strip())
-                  for x in targets.split(",")
-                  if x.strip()
-              ]
-
-          command = {
-              "id": command_id,
-              "action": "respect",
-              "username": os.environ["USERNAME"],
-              "targets": targets_value
-          }
-
-          filename = f"commands/{command_id}.json"
-
-          with open(filename, "w", encoding="utf-8") as f:
-              json.dump(
-                  command,
-                  f,
-                  ensure_ascii=False,
-                  indent=2
-              )
-
-          print(f"Comando criado: {filename}")
-          PY
-
-      - name: Publicar comando
+      - name: Configurar Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      - name: Publicar comando Respeitar
+        env:
+          USERNAME: ${{ inputs.username }}
+          TARGETS: ${{ inputs.targets }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import time
+          from pathlib import Path
+
+          command_id = str(time.time_ns())
+
+          username = os.environ["USERNAME"].strip()
+          targets = os.environ["TARGETS"].strip() or "all"
+
+          if not username:
+              raise SystemExit("Nome do usuário não pode estar vazio.")
+
+          command = {
+              "id": command_id,
+              "action": "respect",
+              "targets": targets,
+              "username": username
+          }
+
+          commands_dir = Path("commands")
+          commands_dir.mkdir(parents=True, exist_ok=True)
+
+          command_file = commands_dir / f"{command_id}.json"
+
+          command_file.write_text(
+              json.dumps(
+                  command,
+                  ensure_ascii=False,
+                  indent=2
+              ),
+              encoding="utf-8"
+          )
+
+          print("=" * 40)
+          print("COMANDO PUBLICADO COM SUCESSO")
+          print("=" * 40)
+          print(f"ID:       {command_id}")
+          print("Ação:     respect")
+          print(f"Contas:   {targets}")
+          print(f"Usuário:  {username}")
+          print(f"Arquivo:  {command_file}")
+          print("=" * 40)
+          PY
+
+      - name: Commitar comando
+        run: |
           git add commands/
+
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração para commit."
+            exit 0
+          fi
 
           git commit -m "command: respect"
 
