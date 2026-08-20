@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       message:
-        description: "Teste"
+        description: "Frase que as contas devem falar"
         required: true
         type: string
 
@@ -27,17 +27,17 @@ jobs:
           MESSAGE: ${{ inputs.message }}
           TARGETS: ${{ inputs.targets }}
         run: |
-          mkdir -p commands
-
-          COMMAND_ID="$(date +%s%N)"
-
           python - <<'PY'
           import json
           import os
           import time
+          import base64
+          import urllib.request
+
+          repository = os.environ["GITHUB_REPOSITORY"]
+          token = os.environ["GITHUB_TOKEN"]
 
           command_id = str(time.time_ns())
-
           targets = os.environ["TARGETS"].strip()
 
           if targets.lower() == "all":
@@ -56,26 +56,50 @@ jobs:
               "targets": targets_value
           }
 
-          filename = f"commands/{command_id}.json"
+          content = json.dumps(
+              command,
+              ensure_ascii=False,
+              indent=2
+          )
 
-          with open(filename, "w", encoding="utf-8") as f:
-              json.dump(
-                  command,
-                  f,
-                  ensure_ascii=False,
-                  indent=2
+          encoded_content = base64.b64encode(
+              content.encode("utf-8")
+          ).decode("ascii")
+
+          path = f"commands/{command_id}.json"
+
+          url = (
+              f"https://api.github.com/repos/"
+              f"{repository}/contents/{path}"
+          )
+
+          payload = json.dumps({
+              "message": f"command: say {command_id}",
+              "content": encoded_content
+          }).encode("utf-8")
+
+          request = urllib.request.Request(
+              url,
+              data=payload,
+              method="PUT",
+              headers={
+                  "Accept": "application/vnd.github+json",
+                  "Authorization": f"Bearer {token}",
+                  "X-GitHub-Api-Version": "2022-11-28",
+                  "Content-Type": "application/json",
+                  "User-Agent": "Habblive-Auto-Login"
+              }
+          )
+
+          with urllib.request.urlopen(request) as response:
+              result = json.loads(
+                  response.read().decode("utf-8")
               )
 
-          print(f"Comando criado: {filename}")
+          print(f"Comando publicado com sucesso.")
+          print(f"ID: {command_id}")
+          print(f"Arquivo: {path}")
+          print(f"Commit: {result['commit']['sha']}")
           PY
-
-      - name: Publicar comando
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add commands/
-
-          git commit -m "command: say"
-
-          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
