@@ -22,10 +22,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Criar comando
+      - name: Criar e publicar comando
         env:
           MESSAGE: ${{ inputs.message }}
           TARGETS: ${{ inputs.targets }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
         run: |
           python - <<'PY'
           import json
@@ -38,7 +40,12 @@ jobs:
           token = os.environ["GITHUB_TOKEN"]
 
           command_id = str(time.time_ns())
+
+          message = os.environ["MESSAGE"]
           targets = os.environ["TARGETS"].strip()
+
+          if not message.strip():
+              raise ValueError("A mensagem não pode estar vazia.")
 
           if targets.lower() == "all":
               targets_value = "all"
@@ -49,10 +56,15 @@ jobs:
                   if x.strip()
               ]
 
+              if not targets_value:
+                  raise ValueError(
+                      "Nenhuma conta válida foi informada."
+                  )
+
           command = {
               "id": command_id,
               "action": "say",
-              "message": os.environ["MESSAGE"],
+              "message": message,
               "targets": targets_value
           }
 
@@ -91,15 +103,29 @@ jobs:
               }
           )
 
-          with urllib.request.urlopen(request) as response:
-              result = json.loads(
-                  response.read().decode("utf-8")
-              )
+          try:
+              with urllib.request.urlopen(request) as response:
+                  result = json.loads(
+                      response.read().decode("utf-8")
+                  )
 
-          print(f"Comando publicado com sucesso.")
-          print(f"ID: {command_id}")
+          except urllib.error.HTTPError as e:
+              error_body = e.read().decode("utf-8", errors="replace")
+
+              print("Erro ao publicar comando:")
+              print(error_body)
+
+              raise
+
+          print("")
+          print("========================================")
+          print("COMANDO PUBLICADO COM SUCESSO")
+          print("========================================")
+          print(f"ID:      {command_id}")
+          print(f"Ação:    say")
+          print(f"Contas:  {targets_value}")
+          print(f"Frase:   {message}")
           print(f"Arquivo: {path}")
-          print(f"Commit: {result['commit']['sha']}")
+          print(f"Commit:  {result['commit']['sha']}")
+          print("========================================")
           PY
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
