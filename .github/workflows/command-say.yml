@@ -1,0 +1,81 @@
+name: 🎤 Comando - Falar
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: "Teste"
+        required: true
+        type: string
+
+      targets:
+        description: "Contas: all ou números separados por vírgula (ex: 1,2,7,20)"
+        required: true
+        default: "all"
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  send-command:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Criar comando
+        env:
+          MESSAGE: ${{ inputs.message }}
+          TARGETS: ${{ inputs.targets }}
+        run: |
+          mkdir -p commands
+
+          COMMAND_ID="$(date +%s%N)"
+
+          python - <<'PY'
+          import json
+          import os
+          import time
+
+          command_id = str(time.time_ns())
+
+          targets = os.environ["TARGETS"].strip()
+
+          if targets.lower() == "all":
+              targets_value = "all"
+          else:
+              targets_value = [
+                  int(x.strip())
+                  for x in targets.split(",")
+                  if x.strip()
+              ]
+
+          command = {
+              "id": command_id,
+              "action": "say",
+              "message": os.environ["MESSAGE"],
+              "targets": targets_value
+          }
+
+          filename = f"commands/{command_id}.json"
+
+          with open(filename, "w", encoding="utf-8") as f:
+              json.dump(
+                  command,
+                  f,
+                  ensure_ascii=False,
+                  indent=2
+              )
+
+          print(f"Comando criado: {filename}")
+          PY
+
+      - name: Publicar comando
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add commands/
+
+          git commit -m "command: say"
+
+          git push
