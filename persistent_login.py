@@ -11,6 +11,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from colorama import Fore, Style, init
 
+# Importa as ações do actions.py
+from actions import falar_frase, respeitar_usuario, beijar_usuario
+
 # ===== CONFIGURAÇÃO =====
 URL_BIGCLIENT = "https://habblive.in/bigclient/"
 CHECK_INTERVAL = 15  # segundos entre verificações
@@ -196,6 +199,9 @@ def iniciar_sessao(username, password, index):
 
         service = Service(ChromeDriverManager().install())
         driver = webdriver.Chrome(service=service, options=options)
+        
+        # <<< salva o driver no dicionário global
+        drivers[index] = driver
 
         try:
             log(f"[Conta {index}] Iniciando login para {username}...", Fore.CYAN)
@@ -296,6 +302,44 @@ def iniciar_sessao(username, password, index):
             driver.quit()
             time.sleep(5)
 
+# --- Função para executar ações em todas as contas ---
+def executar_em_todas(frase=None, respeitar=None, beijar=None):
+    for idx, driver in drivers.items():
+        try:
+            if frase:
+                falar_frase(driver, frase)
+            if respeitar:
+                respeitar_usuario(driver, respeitar)
+            if beijar:
+                beijar_usuario(driver, beijar)
+        except Exception as e:
+            log(f"[Conta {idx}] Erro ao executar ação: {repr(e)}", Fore.RED)
+
+# --- Menu interativo ---
+def menu_interativo():
+    while True:
+        print("\n=== MENU DE AÇÕES ===")
+        print("1 - Falar uma frase")
+        print("2 - Respeitar usuário")
+        print("3 - Beijar usuário")
+        print("0 - Sair")
+        escolha = input("Escolha uma opção: ")
+
+        if escolha == "1":
+            frase = input("Digite a frase: ")
+            executar_em_todas(frase=frase)
+        elif escolha == "2":
+            nome = input("Digite o nome do usuário: ")
+            executar_em_todas(respeitar=nome)
+        elif escolha == "3":
+            nome = input("Digite o nome do usuário: ")
+            executar_em_todas(beijar=nome)
+        elif escolha == "0":
+            print("Encerrando menu...")
+            break
+        else:
+            print("Opção inválida.")
+
 # Lê todas as contas, mesmo com buracos
 accounts = []
 i = 1
@@ -330,3 +374,5 @@ for t in threads:
     t.join()
 
 painel_thread.join()
+# Inicia o menu interativo
+menu_interativo()
