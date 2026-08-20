@@ -1,0 +1,79 @@
+name: 🤝 Comando - Respeitar
+
+on:
+  workflow_dispatch:
+    inputs:
+      username:
+        description: "Nome do usuário"
+        required: true
+        type: string
+
+      targets:
+        description: "Contas: all ou números separados por vírgula"
+        required: true
+        default: "all"
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  send-command:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Criar comando
+        env:
+          USERNAME: ${{ inputs.username }}
+          TARGETS: ${{ inputs.targets }}
+        run: |
+          mkdir -p commands
+
+          python - <<'PY'
+          import json
+          import os
+          import time
+
+          command_id = str(time.time_ns())
+
+          targets = os.environ["TARGETS"].strip()
+
+          if targets.lower() == "all":
+              targets_value = "all"
+          else:
+              targets_value = [
+                  int(x.strip())
+                  for x in targets.split(",")
+                  if x.strip()
+              ]
+
+          command = {
+              "id": command_id,
+              "action": "respect",
+              "username": os.environ["USERNAME"],
+              "targets": targets_value
+          }
+
+          filename = f"commands/{command_id}.json"
+
+          with open(filename, "w", encoding="utf-8") as f:
+              json.dump(
+                  command,
+                  f,
+                  ensure_ascii=False,
+                  indent=2
+              )
+
+          print(f"Comando criado: {filename}")
+          PY
+
+      - name: Publicar comando
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add commands/
+
+          git commit -m "command: respect"
+
+          git push
